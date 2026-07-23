@@ -37,9 +37,9 @@ export default defineNuxtConfig({
   },
   spaLoadingTemplate: false,
 
-  // Local dev defaults: keep in 6000 range to avoid common port conflicts
+  // Local dev defaults: keep in 6000s range (6100; avoid browser-blocked 6000) to avoid common port conflicts
   devServer: {
-    port: 6000,
+    port: 6100,
   },
 
   app: {

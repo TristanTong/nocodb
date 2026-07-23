@@ -291,7 +291,7 @@ function copyToClipboard(text: string, label: string) {
               <a-textarea
                 v-model:value="clientRef.redirect_uris"
                 :rows="4"
-                placeholder="https://example.com/auth/callback&#10;http://localhost:6000/callback&#10;http://127.0.0.1:6000/callback"
+                placeholder="https://example.com/auth/callback&#10;http://localhost:6100/callback&#10;http://127.0.0.1:6100/callback"
                 class="nc-input-shadow !rounded-lg"
               />
             </a-form-item>
