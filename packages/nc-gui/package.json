@@ -23,8 +23,10 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
+    "dev:hmr": "nuxt dev --port 6110 --host 0.0.0.0",
     "generate": "nuxt generate",
     "start": "node .output/server/index.mjs",
+    "start:prod": "node ../../scripts/compat/serve_frontend_prod.mjs",
     "lint": "eslint --ext \".js,.jsx,.ts,.tsx,.vue\" --fix --ignore-path .gitignore .",
     "test": "vitest -c test/vite.config.ts",
     "test:ui": "vitest -c test/vite.config.ts --ui",

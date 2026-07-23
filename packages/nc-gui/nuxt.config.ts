@@ -26,10 +26,17 @@ export default defineNuxtConfig({
     },
   },
   chatwoot: {
-    init: {
-      websiteToken: 'ke2YjiPnKw9gnz4PCq4RuQqR',
-      baseUrl: 'https://app.chatwoot.com',
-    },
+    // Skip remote widget script in local/dev (first-paint win). Opt-in: NC_ENABLE_CHATWOOT=true
+    init:
+      process.env.NODE_ENV === 'production' || process.env.NC_ENABLE_CHATWOOT === 'true'
+        ? {
+            websiteToken: 'ke2YjiPnKw9gnz4PCq4RuQqR',
+            baseUrl: 'https://app.chatwoot.com',
+          }
+        : {
+            websiteToken: '',
+            baseUrl: 'https://app.chatwoot.com',
+          },
     settings: {
       darkMode: 'light',
       hideMessageBubble: true,
@@ -45,12 +52,19 @@ export default defineNuxtConfig({
   },
 
   app: {
-    pageTransition: process.env.NUXT_PAGE_TRANSITION_DISABLE
-      ? false
-      : {
-          name: 'page',
-          mode: 'out-in',
-        },
+    // Dev: skip page transitions for snappier local UX (override with NUXT_PAGE_TRANSITION_DISABLE=false)
+    pageTransition:
+      process.env.NUXT_PAGE_TRANSITION_DISABLE === 'false'
+        ? {
+            name: 'page',
+            mode: 'out-in',
+          }
+        : process.env.NODE_ENV === 'development' || process.env.NUXT_PAGE_TRANSITION_DISABLE
+          ? false
+          : {
+              name: 'page',
+              mode: 'out-in',
+            },
     // layoutTransition: process.env.NUXT_PAGE_TRANSITION_DISABLE
     //   ? false
     //   : {
@@ -131,7 +145,8 @@ export default defineNuxtConfig({
   css: [
     ...(process.env.NC_CDN_URL ? [] : ['~/assets/style/fonts-new.css']),
     'virtual:windi.css',
-    'virtual:windi-devtools',
+    // windi-devtools adds CSS pipeline cost on every page; opt-in only
+    ...(process.env.NC_WINDI_DEVTOOLS === 'true' ? ['virtual:windi-devtools'] : []),
     '~/assets/css/global.css',
     '~/assets/style.scss',
     '~/assets/css/theme-overrides.scss',
@@ -223,9 +238,19 @@ export default defineNuxtConfig({
       'process.env.ANT_MESSAGE_DURATION': process.env.ANT_MESSAGE_DURATION,
     },
     server: {
+      strictPort: true,
       watch: {
-        usePolling: true,
+        // Polling is costly on local Windows disks; enable with NC_VITE_USE_POLLING=true (Docker/WSL/network FS)
+        usePolling: process.env.NC_VITE_USE_POLLING === 'true',
       },
+      // Warm critical entry points so first browser hit is less cold
+      ...(process.env.NODE_ENV === 'development'
+        ? {
+            warmup: {
+              clientFiles: ['./app.vue', './error.vue', './layouts/**/*.vue', './pages/index.vue', './pages/index/[typeOrId].vue'],
+            },
+          }
+        : {}),
     },
     resolve: {
       alias: {
@@ -235,6 +260,8 @@ export default defineNuxtConfig({
       },
     },
     optimizeDeps: {
+      // Allow first paint while remaining deps finish optimizing (Vite 5+)
+      holdUntilCrawlEnd: false,
       include: [
         '@ckpack/vue-color',
         '@tiptap/core',
@@ -257,9 +284,6 @@ export default defineNuxtConfig({
         '@tiptap/pm/view',
         '@tiptap/starter-kit',
         '@tiptap/vue-3',
-        '@vue-flow/additional-components',
-        '@vue-flow/core',
-        '@vue-flow/minimap',
         '@vuelidate/core',
         '@vuelidate/validators',
         '@vueuse/integrations/useQRCode',
@@ -275,7 +299,6 @@ export default defineNuxtConfig({
         'diff',
         'embla-carousel-vue',
         'emoji-mart-vue-fast/src',
-        'esbuild-wasm',
         'fflate',
         'file-saver',
         'fuse.js',
@@ -287,8 +310,6 @@ export default defineNuxtConfig({
         'markdown-it-regexp',
         'markdown-it-task-lists',
         'marked',
-        'monaco-editor',
-        'monaco-editor/esm/vs/basic-languages/javascript/javascript',
         'papaparse',
         'rehype-sanitize',
         'rehype-stringify',
@@ -307,22 +328,17 @@ export default defineNuxtConfig({
         'vue-advanced-cropper',
         'vue-barcode-reader',
         'vuedraggable',
-        'xlsx',
-        'youtube-vue3',
         'lru-cache',
         'qrcode',
-        'validator',
         '@floating-ui/vue',
-        'validator',
         '@stripe/stripe-js',
         'typesense',
         'vue3-moveable',
         'vue-fullscreen',
         'cronstrue',
-        'plyr',
-        'leaflet',
-        'leaflet.markercluster',
         'uuid',
+        // Heavy / route-specific deps (monaco, leaflet, xlsx, vue-flow, plyr, etc.)
+        // are left out of include so cold start does not prebundle them all up front.
       ],
       esbuildOptions: {
         define: {

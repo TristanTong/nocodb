@@ -1,0 +1,201 @@
+{
+  "generated_at": "2026-07-23T08:53:27.801116+00:00",
+  "summary": {
+    "passed": 17,
+    "failed": 0,
+    "blocked": 1,
+    "skip": 9,
+    "total": 27
+  },
+  "results": [
+    {
+      "id": "TC-BASE-01",
+      "title": "登录后 Base 列表 (需 UI/登录)",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-BASE-02",
+      "title": "打开 Base (需 UI/登录)",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-GRID-01",
+      "title": "网格查看 (需 UI/登录)",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-GRID-02",
+      "title": "网格新增 (需 UI/登录)",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-GRID-03",
+      "title": "网格编辑 (需 UI/登录)",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-DS-01",
+      "title": "添加标准 PG 源 UI",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-DS-03",
+      "title": "海量源同步 UI（SQL 层已由 COMPAT/VB 覆盖）",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-DS-04",
+      "title": "同步后可见业务表 UI",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-DS-05",
+      "title": "错误密码 UI 提示",
+      "status": "skip",
+      "duration_ms": 0,
+      "detail": "本轮以 API/SQL 冒烟为主；UI 见 Playwright"
+    },
+    {
+      "id": "TC-ENV-01",
+      "title": "Backend 健康检查",
+      "status": "pass",
+      "duration_ms": 55,
+      "detail": "status=200 body={'message': 'OK', 'timestamp': 1784796806784, 'uptime': 87.3794023}"
+    },
+    {
+      "id": "TC-ENV-02",
+      "title": "版本接口",
+      "status": "pass",
+      "duration_ms": 2,
+      "detail": "status=200 version=0.301.2"
+    },
+    {
+      "id": "TC-ENV-03",
+      "title": "Frontend 可访问",
+      "status": "pass",
+      "duration_ms": 15,
+      "detail": "status=200 len=2612"
+    },
+    {
+      "id": "TC-AUTH-01",
+      "title": "正确账号登录",
+      "status": "blocked",
+      "duration_ms": 0,
+      "detail": "set NC_TEST_EMAIL / NC_TEST_PASSWORD to run"
+    },
+    {
+      "id": "TC-AUTH-02",
+      "title": "错误密码拒绝",
+      "status": "pass",
+      "duration_ms": 3,
+      "detail": "status=400 body={'msg': 'Invalid credentials'}"
+    },
+    {
+      "id": "TC-AUTH-03",
+      "title": "user/me guest/roles",
+      "status": "pass",
+      "duration_ms": 1,
+      "detail": "status=200 body={'roles': {'guest': True}, 'workspace_roles': None, 'base_roles': None}"
+    },
+    {
+      "id": "TC-PORT-01",
+      "title": "6080/6100 可访问",
+      "status": "pass",
+      "duration_ms": 7,
+      "detail": "backend=True frontend=True dashboard_code=200"
+    },
+    {
+      "id": "TC-BUILD-01",
+      "title": "PgClient 无 WITH ORDINALITY",
+      "status": "pass",
+      "duration_ms": 2,
+      "detail": "has_ORDINALITY_in_code=False has_generate_series=True"
+    },
+    {
+      "id": "TC-META-01",
+      "title": "Meta info + sqlite mtime",
+      "status": "pass",
+      "duration_ms": 529,
+      "detail": "info_version=0.301.2 noco_db_mtime_before=1784784914.7417717 after=1784784914.7417717"
+    },
+    {
+      "id": "TC-META-02",
+      "title": "Meta PG 有用户/Base",
+      "status": "pass",
+      "duration_ms": 46,
+      "detail": "pg_users=52 pg_bases=28 info=200"
+    },
+    {
+      "id": "TC-DS-02",
+      "title": "海量库连接 metabase_rpt",
+      "status": "pass",
+      "duration_ms": 32,
+      "detail": "db=('metabase_rpt', 'sa')"
+    },
+    {
+      "id": "TC-COMPAT-01",
+      "title": "Vastbase relationListAll SQL",
+      "status": "pass",
+      "duration_ms": 42,
+      "detail": "rows=0"
+    },
+    {
+      "id": "TC-COMPAT-02",
+      "title": "标准 PG FK 列映射",
+      "status": "pass",
+      "duration_ms": 34,
+      "detail": "rows=[('public', '_nc_fk_test_child_parent_id_fkey', '_nc_fk_test_child', 'parent_id', 'public', '_nc_fk_test_parent', 'id')]"
+    },
+    {
+      "id": "TC-VB-01",
+      "title": "列举 schema/表",
+      "status": "pass",
+      "duration_ms": 45,
+      "detail": "tables_by_schema=[('dbo', 36), ('py_etl', 15)]"
+    },
+    {
+      "id": "TC-VB-02",
+      "title": "只读抽样 dbo 表",
+      "status": "pass",
+      "duration_ms": 38,
+      "detail": "table=APS出货清单列表 sample_rows=5"
+    },
+    {
+      "id": "TC-VB-03",
+      "title": "隔离表 CRUD(含04/05)",
+      "status": "pass",
+      "duration_ms": 86,
+      "detail": "crud ok on dbo.\"_nc_auto_test_1784796807\""
+    },
+    {
+      "id": "TC-VB-06",
+      "title": "错误密码连接失败",
+      "status": "pass",
+      "duration_ms": 69,
+      "detail": "connection to server at \"192.168.100.99\", port 5432 failed: FATAL:  Invalid username/password,login denied."
+    },
+    {
+      "id": "TC-VB-07",
+      "title": "introspect+表列表联调",
+      "status": "pass",
+      "duration_ms": 47,
+      "detail": "fk_rows=0 dbo_tables=36"
+    }
+  ]
+}

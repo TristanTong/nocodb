@@ -1,0 +1,30 @@
+{
+  "url": "http://127.0.0.1:6100/",
+  "budgetMs": 3000,
+  "openMs": 1658,
+  "elapsedMs": 1660,
+  "interactiveAtMs": 1658,
+  "passed": true,
+  "marker": {
+    "ready": true,
+    "hasApp": true,
+    "signin": true,
+    "dashboard": false,
+    "hasViteError": false,
+    "title": "Log In",
+    "readyState": "complete",
+    "bodyLen": 92,
+    "resourceHints": 250
+  },
+  "navigation": {
+    "domContentLoaded": 406,
+    "loadEventEnd": 425,
+    "responseStart": 5,
+    "transferSize": 19382,
+    "fcp": 1632,
+    "resourceCount": 250,
+    "resourceTransferBytes": 18743948
+  },
+  "measuredAt": "2026-07-23T09:26:34.786Z",
+  "modeHint": "chrome-cdp-headless"
+}

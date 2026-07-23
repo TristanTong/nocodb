@@ -1125,10 +1125,12 @@ class PGClient extends KnexClient {
            ARRAY_AGG(col.attname ORDER BY u.attposition) AS columns,
            pg_get_constraintdef(c.oid)                   AS definition
         FROM pg_constraint c
-           JOIN LATERAL UNNEST(c.conkey) WITH ORDINALITY AS u(attnum, attposition) ON TRUE
+           -- Avoid LATERAL UNNEST…WITH ORDINALITY (unsupported on Vastbase/openGauss forks)
+           JOIN generate_series(1, 32) AS u(attposition)
+             ON u.attposition <= coalesce(array_length(c.conkey, 1), 0)
            JOIN pg_class tbl ON tbl.oid = c.conrelid
            JOIN pg_namespace sch ON sch.oid = tbl.relnamespace
-           JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = u.attnum)
+           JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = c.conkey[u.attposition])
         where tbl.relname=?
         GROUP BY constraint_name, col.attnum, constraint_type, "schema", "table", definition
         ORDER BY "schema", "table"; `,
@@ -1205,14 +1207,15 @@ class PGClient extends KnexClient {
           pc.confupdtype AS ur,
           pc.confdeltype AS dr
         FROM pg_constraint pc
-          LEFT JOIN LATERAL UNNEST(pc.conkey)  WITH ORDINALITY AS u(attnum, attposition)   ON TRUE
-          LEFT JOIN LATERAL UNNEST(pc.confkey) WITH ORDINALITY AS f_u(attnum, attposition) ON f_u.attposition = u.attposition
+          -- Avoid LATERAL UNNEST…WITH ORDINALITY (unsupported on Vastbase/openGauss forks)
           JOIN pg_class tbl ON tbl.oid = pc.conrelid
           JOIN pg_namespace sch ON sch.oid = tbl.relnamespace
-          LEFT JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = u.attnum)
+          JOIN generate_series(1, 32) AS u(attposition)
+            ON u.attposition <= coalesce(array_length(pc.conkey, 1), 0)
+          LEFT JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = pc.conkey[u.attposition])
           LEFT JOIN pg_class f_tbl ON f_tbl.oid = pc.confrelid
           LEFT JOIN pg_namespace f_sch ON f_sch.oid = f_tbl.relnamespace
-          LEFT JOIN pg_attribute f_col ON (f_col.attrelid = f_tbl.oid AND f_col.attnum = f_u.attnum)
+          LEFT JOIN pg_attribute f_col ON (f_col.attrelid = f_tbl.oid AND f_col.attnum = pc.confkey[u.attposition])
         WHERE pc.contype = 'f' AND sch.nspname = :schema AND f_sch.nspname = sch.nspname AND tbl.relname = :table ;`,
         { schema: this.getEffectiveSchema(args), table: args.tn },
       );
@@ -1342,14 +1345,15 @@ class PGClient extends KnexClient {
           pc.confupdtype AS ur,
           pc.confdeltype AS dr
         FROM pg_constraint pc
-          LEFT JOIN LATERAL UNNEST(pc.conkey)  WITH ORDINALITY AS u(attnum, attposition)   ON TRUE
-          LEFT JOIN LATERAL UNNEST(pc.confkey) WITH ORDINALITY AS f_u(attnum, attposition) ON f_u.attposition = u.attposition
+          -- Avoid LATERAL UNNEST…WITH ORDINALITY (unsupported on Vastbase/openGauss forks)
           JOIN pg_class tbl ON tbl.oid = pc.conrelid
           JOIN pg_namespace sch ON sch.oid = tbl.relnamespace
-          LEFT JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = u.attnum)
+          JOIN generate_series(1, 32) AS u(attposition)
+            ON u.attposition <= coalesce(array_length(pc.conkey, 1), 0)
+          LEFT JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = pc.conkey[u.attposition])
           LEFT JOIN pg_class f_tbl ON f_tbl.oid = pc.confrelid
           LEFT JOIN pg_namespace f_sch ON f_sch.oid = f_tbl.relnamespace
-          LEFT JOIN pg_attribute f_col ON (f_col.attrelid = f_tbl.oid AND f_col.attnum = f_u.attnum)
+          LEFT JOIN pg_attribute f_col ON (f_col.attrelid = f_tbl.oid AND f_col.attnum = pc.confkey[u.attposition])
         WHERE pc.contype = 'f' AND sch.nspname = ? AND f_sch.nspname = sch.nspname
         ORDER BY tn;`,
         [this.getEffectiveSchema(args)],

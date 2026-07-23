@@ -1,0 +1,26 @@
+{
+  "budgetMs": 3000,
+  "runs": [
+    {
+      "run": 1,
+      "openMs": 1705,
+      "passed": true,
+      "rc": 0
+    },
+    {
+      "run": 2,
+      "openMs": 1659,
+      "passed": true,
+      "rc": 0
+    },
+    {
+      "run": 3,
+      "openMs": 1658,
+      "passed": true,
+      "rc": 0
+    }
+  ],
+  "passed": true,
+  "measuredAt": "2026-07-23T09:26:35.347267+00:00",
+  "frontend": "http://127.0.0.1:6100"
+}

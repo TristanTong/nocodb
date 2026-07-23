@@ -33,8 +33,11 @@
   "scripts": {
     "bootstrap": "pnpm --filter=nocodb-sdk install && pnpm --filter=nocodb-sdk run build && pnpm --filter=nocodb --filter=nc-mail-templates --filter=nc-gui --filter=playwright install && pnpm run integrations:build && pnpm run registerIntegrations",
     "integrations:build": "cd ./packages/noco-integrations/ && pnpm i && pnpm run build",
-    "start:frontend": "pnpm --filter=nc-gui run dev",
+    "start:frontend": "node scripts/compat/serve_frontend_prod.mjs",
+    "start:frontend:dev": "pnpm --filter=nc-gui run dev:hmr",
+    "start:frontend:build": "pnpm --filter=nc-gui run build",
     "start:backend": "pnpm --filter=nocodb run start",
+    "test:frontend-open": "node scripts/compat/measure_frontend_open.mjs --url http://127.0.0.1:6100/ --budget 3000",
     "lint:staged:playwright": "cd ./tests/playwright; pnpm dlx lint-staged; cd -",
     "start:mysql": "docker-compose -f ./tests/playwright/scripts/docker-compose-mysql-playwright.yml up -d",
     "stop:mysql": "docker-compose -f ./tests/playwright/scripts/docker-compose-mysql-playwright.yml down",
