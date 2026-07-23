@@ -37,6 +37,11 @@ export default defineNuxtConfig({
   },
   spaLoadingTemplate: false,
 
+  // Local dev defaults: keep in 6000 range to avoid common port conflicts
+  devServer: {
+    port: 6000,
+  },
+
   app: {
     pageTransition: process.env.NUXT_PAGE_TRANSITION_DISABLE
       ? false
@@ -132,7 +137,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      ncBackendUrl: '',
+      ncBackendUrl: process.env.NUXT_PUBLIC_NC_BACKEND_URL || 'http://localhost:6080',
       env: 'production',
       maxPageDesignerTableRows: 100,
     },

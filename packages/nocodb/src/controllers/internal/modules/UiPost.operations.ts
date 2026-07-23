@@ -641,7 +641,7 @@ export class UiPostOperations
         // if environment value avail use it
         // or if it's docker construct using `PORT`
         if (process.env.NC_DOCKER) {
-          baseURL = `http://localhost:${process.env.PORT || 8080}`;
+          baseURL = `http://localhost:${process.env.PORT || 6080}`;
         }
 
         const job = await this.nocoJobsService.add(JobTypes.AtImport, {

@@ -143,7 +143,7 @@ docker compose up -d
 
 # GUI
 
-Access Dashboard using: [http://localhost:8080/dashboard](http://localhost:8080/dashboard)
+Access Dashboard using: [http://localhost:6080/dashboard](http://localhost:6080/dashboard)
 
 # Screenshots
 

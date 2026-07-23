@@ -115,7 +115,7 @@ export const GoogleStrategyProvider: FactoryProvider = {
       clientID: process.env.NC_GOOGLE_CLIENT_ID ?? 'dummy-id',
       clientSecret: process.env.NC_GOOGLE_CLIENT_SECRET ?? 'dummy-secret',
       // todo: update url
-      callbackURL: 'http://localhost:8080/dahsboard',
+      callbackURL: 'http://localhost:6080/dahsboard',
       passReqToCallback: true,
       scope: ['profile', 'email'],
     };

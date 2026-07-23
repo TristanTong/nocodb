@@ -2,7 +2,7 @@
 {
     "srcProject": "sample",
     "dstProject": "sample-copy",
-    "baseURL": "http://localhost:8080",
+    "baseURL": "http://localhost:6080",
     "xc-auth": "Copy Auth Token"
 }
 - baseURL & xc-auth are common configurations for both import & export

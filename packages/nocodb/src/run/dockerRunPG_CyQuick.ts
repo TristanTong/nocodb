@@ -26,7 +26,7 @@ process.env[
 //process.env[`DEBUG`] = 'xc*';
 
 (async () => {
-  const httpServer = server.listen(process.env.PORT || 8080, async () => {
+  const httpServer = server.listen(process.env.PORT || 6080, async () => {
     server.use(await Noco.init({}, httpServer, server));
   });
 })().catch((e) => console.log(e));

@@ -2,6 +2,6 @@
   "srcProject": "sample",
   "dstProject": "sample-copy",
   "excludeDt": true,
-  "baseURL": "http://localhost:8080",
+  "baseURL": "http://localhost:6080",
   "xc-auth": "Copy Auth Token"
 }

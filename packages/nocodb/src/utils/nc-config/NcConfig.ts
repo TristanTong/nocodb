@@ -71,7 +71,7 @@ export class NcConfig {
       },
     };
 
-    ncConfig.port = +(port ?? 8080);
+    ncConfig.port = +(port ?? 6080);
     ncConfig.toolDir = getToolDir();
     ncConfig.worker = worker ?? false;
 

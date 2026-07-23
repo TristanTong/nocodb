@@ -15,7 +15,7 @@ server.use(
 server.set('view engine', 'ejs');
 
 async function bootstrap() {
-  const httpServer = server.listen(process.env.PORT || 8080, async () => {
+  const httpServer = server.listen(process.env.PORT || 6080, async () => {
     server.use(await Noco.init({}, httpServer, server));
   });
 }
