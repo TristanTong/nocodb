@@ -87,6 +87,9 @@ mongod
 #=========
 nc_minimal_dbs/
 test_noco.db
+/packages/nocodb/.env
+/packages/nocodb/.env.*
+!/packages/nocodb/.env.example
 
 # ngrok config
 httpbin

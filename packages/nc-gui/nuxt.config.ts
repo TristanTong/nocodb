@@ -38,8 +38,10 @@ export default defineNuxtConfig({
   spaLoadingTemplate: false,
 
   // Local dev defaults: keep in 6000s range (6100; avoid browser-blocked 6000) to avoid common port conflicts
+  // Bind 0.0.0.0 so Windows localhost (IPv4) can reach the Nuxt server (default may be IPv6-only)
   devServer: {
     port: 6100,
+    host: '0.0.0.0',
   },
 
   app: {
