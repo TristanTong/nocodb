@@ -145,7 +145,7 @@ cp /path/to/repo/docker-compose/centos-internal/docker-compose.yml /opt/mlnocodb
 
 ```yaml
 # mlnocodb-api
-image: mlnocodb:0.1.2
+image: mlnocodb:0.1.3
 environment:
   # 生产 Meta 示例（按实际修改；@ → %40）
   NC_DB: "pg://192.168.100.93:5432?u=postgres&p=REPLACE_ME&d=mlnoco"
@@ -207,7 +207,7 @@ docker run -d --name mlnocodb-api --restart always \
   -e NC_PUBLIC_URL='http://<服务器IP>:6080' \
   -e TZ=Asia/Shanghai \
   -v /opt/mlnocodb/data:/usr/app/data \
-  mlnocodb:0.1.2
+  mlnocodb:0.1.3
 ```
 
 后续再按 §4.2 补 6100 UI。
