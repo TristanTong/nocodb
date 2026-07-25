@@ -3,9 +3,12 @@
 | 项 | 内容 |
 |----|------|
 | 适用系统 | CentOS 7.6（内网服务器） |
-| 推荐方式 | **Docker 单容器**（含后端 + `/dashboard` UI） |
-| 源码基线 | mlnocodb `0.301.2` / tag `v0.1.1` |
+| 推荐方式 | **Docker 双容器**：API `6080` + 最新 UI `6100` |
+| 源码基线 | mlnocodb `0.301.2`；里程碑 tag `v0.1.2`（含 SQL Server MVP）；后续 Phase 3～5 以分支提交合入 |
+| 推荐 Dockerfile | `packages/nocodb/Dockerfile.centos`（官方 `0.301.2` + 自研 `main.js` + **`mssql` 驱动**） |
 | 不推荐 | 在 CentOS 7 上直接安装 Node.js 22（glibc 过旧，易失败） |
+
+关联文档：[08-系统运维手册.md](./08-系统运维手册.md)、[12-SQLServer数据源支持开发方案.md](./12-SQLServer数据源支持开发方案.md)。
 
 ---
 
@@ -15,18 +18,19 @@
 |------|------|
 | 本机装 Node 22 + pnpm | CentOS 7.6 通常 **不可行**（glibc 2.17，Node 22 需要更新） |
 | Docker 跑应用 | **推荐**：镜像内自带 Node 22，与宿主内核分离 |
-| 官方 `nocodb/nocodb:latest` | 可用，但 **不含** 本仓库 Vastbase FK 等补丁 |
-| 本仓库自建镜像 | **内网推荐**：带上 `PgClient` 等本地修复 |
+| 官方 `nocodb/nocodb:0.301.2` | 可用作**基础层**，但 **不含** 本仓库 Vastbase / SQL Server 补丁，且 **无 `mssql` 包** |
+| 本仓库 `Dockerfile.centos` | **内网推荐**：覆盖 `main.js` + 安装 `mssql`，支持海量 FK 与 SQL Server 外部源 |
 
-访问入口（单容器默认）：
+访问入口（推荐双容器）：
 
 | 用途 | URL |
 |------|-----|
-| UI | `http://<服务器IP>:6080/dashboard` |
-| 健康检查 | `http://<服务器IP>:6080/api/v1/health` |
+| **最新 UI（日常）** | `http://<服务器IP>:6100/` |
+| API / 健康 | `http://<服务器IP>:6080/api/v1/health` |
 | 版本 | `http://<服务器IP>:6080/api/v1/version` |
+| 内置备用 GUI | `http://<服务器IP>:6080/dashboard`（`nc-lib-gui`，可能偏旧） |
 
-> 说明：内网快速上线优先用容器内置 UI（`/dashboard`）。独立 `6100` 前端生产包可后续再加，不是第一天必做项。
+> 生产示例（历史环境）：UI 映射到宿主 **80** 时，对外仍是最新 `.output`；本文以 `6100` 说明，按需改端口映射即可。
 
 ---
 
@@ -35,45 +39,52 @@
 ### 2.1 服务器与网络
 
 - CentOS 7.6，能访问：
-  - Meta PostgreSQL（例如 `192.168.100.89:5432`，库 `mlnoco`）
-  - 业务库（如海量 Vastbase `192.168.100.99:5432`）
-- 开放入站端口：`6080/tcp`（或你们改成的映射端口）
-- 磁盘：建议 ≥ 20GB 可用；附件目录单独挂卷
+  - **Meta PostgreSQL**（开发示例 `192.168.100.89`；生产示例 `192.168.100.93`，库 `mlnoco`）
+  - 业务库按需：海量 Vastbase、**SQL Server**（默认 `1433`，或自定义端口如 `5678`）等
+- 开放入站：`6080/tcp`、`6100/tcp`（或 Nginx 仅开 `80`）
+- 出站：应用主机 → Meta / 业务库端口（含 SQL Server）
+- 磁盘：建议 ≥ 20GB 可用；附件目录单独挂卷 `/opt/mlnocodb/data`
 
-### 2.2 在一台「构建机」上准备镜像（不要用 CentOS 7 编译）
+### 2.2 在「构建机」上准备镜像（不要用 CentOS 7 编译）
 
-构建机可用：Windows（已装 Docker Desktop）/ Rocky 8+ / Ubuntu 20.04+。
+构建机可用：Windows（Docker Desktop）/ Rocky 8+ / Ubuntu 20.04+。
 
 ```bash
-# 获取本仓库（示例：已打 tag v0.1.1）
 git clone <你们的仓库地址> mlnocodb
 cd mlnocodb
-git checkout v0.1.1
+# 发布点示例：v0.1.2；若需 Phase3～5 DDL/公式/Docker mssql 修复，用含对应提交的分支
+git checkout v0.1.2   # 或当前发布分支 / 指定 commit
 
-# 安装 Node ≥22、pnpm 9，完成依赖与后端产物
 pnpm bootstrap
-# 按仓库脚本构建 nocodb 生产包（生成 packages/nocodb/docker/main 等）
+
+# 生成后端 docker/main.js（以仓库实际脚本为准）
 cd packages/nocodb
-pnpm run build   # 或项目惯用的 docker:build / start:prod 前置构建命令
+pnpm run build        # 或能产出 docker/main.js 的惯用命令
+# 确认存在：packages/nocodb/docker/main.js
 ```
 
-若构建命令因环境差异失败，也可在能跑通本地 Backend 的机器上确认 `packages/nocodb/docker/main.js`（或 `docker/main`）已生成后再 `docker build`。
+用 **CentOS 专用 Dockerfile** 构建（会安装 `mssql`）：
 
 ```bash
-# 在 packages/nocodb 目录构建镜像
-docker build -t mlnocodb:0.1.1 -f Dockerfile .
+cd packages/nocodb
+docker build -t mlnocodb:0.1.2 -f Dockerfile.centos .
+
+# 验收驱动（构建阶段已执行；也可运行时再验）
+docker run --rm mlnocodb:0.1.2 node -e "require('mssql'); console.log('mssql_ok')"
 
 # 导出给内网（无私有仓库时）
-docker save mlnocodb:0.1.1 | gzip > mlnocodb-0.1.1.tar.gz
+docker save mlnocodb:0.1.2 | gzip > mlnocodb-0.1.2.tar.gz
 ```
 
-把 `mlnocodb-0.1.1.tar.gz` 拷到 CentOS 服务器（scp/U 盘/内网文件站均可）。
+> 勿使用未改的官方镜像直接当生产：缺 Vastbase 补丁且 **`require('mssql')` 会失败**，SQL Server 数据源不可用。
+
+把 `mlnocodb-0.1.2.tar.gz` 拷到 CentOS 服务器（scp / U 盘 / 内网文件站）。
 
 ---
 
 ## 3. CentOS 7.6 安装 Docker（一次性）
 
-CentOS 7 已 EOL，请使用 vault 源；以下为常用路径，按内网策略微调。
+CentOS 7 已 EOL，请使用 vault 源或内网镜像源。
 
 ```bash
 sudo yum install -y yum-utils device-mapper-persistent-data lvm2
@@ -88,108 +99,152 @@ sudo usermod -aG docker $USER   # 重新登录后生效
 加载镜像：
 
 ```bash
-gunzip -c mlnocodb-0.1.1.tar.gz | docker load
+gunzip -c mlnocodb-0.1.2.tar.gz | docker load
 docker images | grep mlnocodb
 ```
 
 ---
 
-## 4. 一键启动（对接已有 Meta PG）
+## 4. 推荐：API + 最新 UI（双容器）
 
-在服务器上建目录：
+模板：`docker-compose/centos-internal/docker-compose.yml`。
+
+### 4.1 服务器目录
 
 ```bash
-sudo mkdir -p /opt/mlnocodb/data
+sudo mkdir -p /opt/mlnocodb/data /opt/mlnocodb/ui-output
 cd /opt/mlnocodb
 ```
 
-创建 `docker-compose.yml`（Docker Compose v1/v2 均可；无 Compose 时用下面的 `docker run`）：
+### 4.2 构建并发布 6100 UI（构建机）
 
-```yaml
-version: "2.4"
-services:
-  mlnocodb:
-    image: mlnocodb:0.1.1
-    container_name: mlnocodb
-    restart: always
-    ports:
-      - "6080:8080"
-    environment:
-      NC_DB: "pg://192.168.100.89:5432?u=postgres&p=Pass%40w0rd&d=mlnoco"
-      NC_DISABLE_TELE: "true"
-      NC_PUBLIC_URL: "http://<服务器IP>:6080"
-      # 建议生产必设，多机/重启后登录会话一致：
-      # NC_AUTH_JWT_SECRET: "<长随机串>"
-      TZ: "Asia/Shanghai"
-    volumes:
-      - /opt/mlnocodb/data:/usr/app/data
+```bash
+cd mlnocodb
+# 与后端同一发布点
+export NUXT_PUBLIC_NC_BACKEND_URL=http://<服务器IP>:6080
+export NUXT_PAGE_TRANSITION_DISABLE=true
+pnpm --filter=nc-gui run build
+
+tar -czf nc-gui-output.tar.gz -C packages/nc-gui .output
+# 拷到服务器后：
+sudo tar -xzf nc-gui-output.tar.gz -C /opt/mlnocodb
+sudo rm -rf /opt/mlnocodb/ui-output
+sudo mv /opt/mlnocodb/.output /opt/mlnocodb/ui-output
 ```
 
-> 密码中的 `@` 必须 URL 编码为 `%40`。按实际 Meta 地址/账号修改；**不要把含真实密码的文件提交进 Git**。
+### 4.3 Compose 配置
+
+复制模板并修改：
+
+```bash
+cp /path/to/repo/docker-compose/centos-internal/docker-compose.yml /opt/mlnocodb/docker-compose.yml
+# 编辑 image 标签、NC_DB、NC_PUBLIC_URL、NUXT_PUBLIC_NC_BACKEND_URL
+```
+
+关键环境变量示例：
+
+```yaml
+# mlnocodb-api
+image: mlnocodb:0.1.2
+environment:
+  # 生产 Meta 示例（按实际修改；@ → %40）
+  NC_DB: "pg://192.168.100.93:5432?u=postgres&p=REPLACE_ME&d=mlnoco"
+  NC_DISABLE_TELE: "true"
+  NC_PUBLIC_URL: "http://<服务器IP>:6080"
+  # NC_AUTH_JWT_SECRET: "<长随机串>"
+  TZ: "Asia/Shanghai"
+
+# mlnocodb-ui
+environment:
+  NUXT_PUBLIC_NC_BACKEND_URL: "http://<服务器IP>:6080"
+```
+
+> **不要把含真实密码的 compose 提交进 Git。**
 
 启动：
 
 ```bash
-# Compose
-docker-compose up -d
-# 或 Docker Compose V2
+cd /opt/mlnocodb
 docker compose up -d
-
-# 无 Compose 时：
-docker run -d --name mlnocodb --restart always \
-  -p 6080:8080 \
-  -e NC_DB='pg://192.168.100.89:5432?u=postgres&p=Pass%40w0rd&d=mlnoco' \
-  -e NC_DISABLE_TELE=true \
-  -e NC_PUBLIC_URL='http://<服务器IP>:6080' \
-  -e TZ=Asia/Shanghai \
-  -v /opt/mlnocodb/data:/usr/app/data \
-  mlnocodb:0.1.1
+# 或：docker-compose up -d
 ```
 
-验收：
+### 4.4 验收
 
 ```bash
 curl -s http://127.0.0.1:6080/api/v1/health
 curl -s http://127.0.0.1:6080/api/v1/version
-# 浏览器打开：http://<服务器IP>:6080/dashboard
+curl -sI http://127.0.0.1:6100/ | head -5
+
+# SQL Server 驱动（必须）
+docker exec mlnocodb-api node -e "require('mssql'); console.log('mssql_ok')"
 ```
 
-防火墙（若开启 firewalld）：
+浏览器：
+
+- 日常：`http://<服务器IP>:6100/`
+- 备用：`http://<服务器IP>:6080/dashboard`
+
+防火墙：
 
 ```bash
 sudo firewall-cmd --permanent --add-port=6080/tcp
+sudo firewall-cmd --permanent --add-port=6100/tcp
 sudo firewall-cmd --reload
 ```
 
 ---
 
-## 5. 内网最快路径（总结）
+## 5. 备选：仅 API 单容器（最快试跑）
 
-```text
-构建机：checkout v0.1.1 → 构建后端产物 → docker build → docker save
-    ↓ 拷贝 tar.gz
-CentOS7：docker load → docker run / compose（NC_DB 指已有 PG）
-    ↓
-浏览器：http://服务器:6080/dashboard
+无独立 UI 时，可先只起 API，用内置 `/dashboard`：
+
+```bash
+docker run -d --name mlnocodb-api --restart always \
+  -p 6080:8080 \
+  -e NC_DB='pg://192.168.100.93:5432?u=postgres&p=REPLACE_ME&d=mlnoco' \
+  -e NC_DISABLE_TELE=true \
+  -e NC_PUBLIC_URL='http://<服务器IP>:6080' \
+  -e TZ=Asia/Shanghai \
+  -v /opt/mlnocodb/data:/usr/app/data \
+  mlnocodb:0.1.2
 ```
 
-预计耗时：镜像已就绪时，服务器侧通常 **10～30 分钟**（含装 Docker）；含首次构建镜像则视机器性能 **1～数小时**。
+后续再按 §4.2 补 6100 UI。
 
 ---
 
-## 6. 可选增强
+## 6. 内网最快路径（总结）
 
-### 6.1 Nginx 反代（统一 80 端口）
+```text
+构建机：checkout 发布点 → pnpm bootstrap → 产出 docker/main.js
+       → docker build -f Dockerfile.centos → 验证 require('mssql')
+       → 构建 nc-gui .output → docker save + tar UI
+    ↓ 拷贝
+CentOS7：docker load → 配置 NC_DB（生产 Meta）→ compose up（api+ui）
+    ↓
+浏览器：http://服务器:6100/   （备用 :6080/dashboard）
+```
+
+预计耗时：镜像已就绪时，服务器侧通常 **10～30 分钟**；含首次构建视机器 **1～数小时**。
+
+---
+
+## 7. 可选增强
+
+### 7.1 Nginx 反代（统一 80，UI 对外）
+
+将最新 UI 挂到 80，API 仍可只内网访问或同机反代：
 
 ```nginx
 server {
   listen 80;
   server_name nocodb.internal.example;
-
   client_max_body_size 100m;
 
+  # 最新 UI → 6100
   location / {
-    proxy_pass http://127.0.0.1:6080;
+    proxy_pass http://127.0.0.1:6100;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -198,118 +253,58 @@ server {
 }
 ```
 
-同时把 `NC_PUBLIC_URL` 改成对外访问根地址（如 `http://nocodb.internal.example`）。
+同时把 `NUXT_PUBLIC_NC_BACKEND_URL` / `NC_PUBLIC_URL` 改成浏览器实际访问的后端地址。
 
-### 6.2 发布最新 6100 UI（可以，且推荐与本地一致）
+### 7.2 SQL Server 数据源（部署后）
 
-**可以发布。** 本地 `http://localhost:6100/` 用的就是 `nc-gui` 生产构建（`.output`），内网同样可以挂到服务器 **6100**。
+1. 确认容器内 `mssql_ok`（§4.4）。
+2. 确认防火墙：应用主机 → SQL Server 端口（`1433` 或实例端口）。
+3. 在 UI：**数据源 → SQL Server**，填写 Host/Port/库名/`searchPath`（业务 schema，如 `UFDATA`，不一定是 `dbo`）。
+4. 内网 TLS：常关 encrypt 或开启信任服务器证书。
+5. 默认「禁止改结构」；仅运维评估后关闭再做 DDL。
 
-`6080/dashboard` 是后端自带的 **nc-lib-gui 静态包**，往往比你们当前源码 UI **旧一截**；要「和本地 6100 一样新」，请单独发布前端。
+用户侧说明见 [07-用户操作说明书.md](./07-用户操作说明书.md)；运维要点见 [08](./08-系统运维手册.md) §8。
 
-#### 方式 A：独立 6100 服务（推荐，与本地一致）
-
-在**构建机**（非 CentOS 7）：
-
-```bash
-cd mlnocodb
-git checkout v0.1.1   # 或当前发布分支
-
-# 后端 API 地址写成「浏览器能打开的内网地址」（不要填 localhost）
-export NUXT_PUBLIC_NC_BACKEND_URL=http://<服务器IP>:6080
-export NUXT_PAGE_TRANSITION_DISABLE=true
-pnpm --filter=nc-gui run build
-```
-
-产物目录：`packages/nc-gui/.output/`。打包并拷到服务器：
+### 7.3 升级
 
 ```bash
-tar -czf nc-gui-output.tar.gz -C packages/nc-gui .output
-# 服务器上：
-sudo mkdir -p /opt/mlnocodb
-tar -xzf nc-gui-output.tar.gz -C /opt/mlnocodb
-sudo rm -rf /opt/mlnocodb/ui-output
-sudo mv /opt/mlnocodb/.output /opt/mlnocodb/ui-output
-```
-
-使用仓库模板（API + UI）：`docker-compose/centos-internal/docker-compose.yml`  
-改好 `NC_DB`、`NUXT_PUBLIC_NC_BACKEND_URL`、`NC_PUBLIC_URL` 后：
-
-```bash
+# 构建机：新镜像 mlnocodb:<新标签> + 新 ui-output → 传到服务器 docker load / 覆盖目录
 cd /opt/mlnocodb
-docker compose up -d
+docker compose pull   # 若用仓库；本地 load 则可跳过
+docker compose up -d  # 或 stop/rm 后按新 image 启动
+docker restart mlnocodb-ui   # 仅更新了 ui-output 时
+docker exec mlnocodb-api node -e "require('mssql'); console.log('mssql_ok')"
 ```
 
-或仅启动 UI（API 已在跑）：
-
-```bash
-docker run -d --name mlnocodb-ui --restart always \
-  -p 6100:6100 \
-  -e NITRO_HOST=0.0.0.0 -e NITRO_PORT=6100 -e PORT=6100 \
-  -e NUXT_PUBLIC_NC_BACKEND_URL=http://<服务器IP>:6080 \
-  -e NUXT_PAGE_TRANSITION_DISABLE=true \
-  -v /opt/mlnocodb/ui-output:/app:ro \
-  -w /app \
-  node:22-slim \
-  node server/index.mjs
-```
-
-验收与防火墙：
-
-```bash
-curl -sI http://127.0.0.1:6100/ | head -5
-# 浏览器打开：http://<服务器IP>:6100/
-sudo firewall-cmd --permanent --add-port=6100/tcp && sudo firewall-cmd --reload
-```
-
-| 入口 | 内容 |
-|------|------|
-| `http://IP:6100/` | **最新 UI**（与本地 6100 同源构建） |
-| `http://IP:6080/dashboard` | 后端内置 GUI（可能较旧，可作备用） |
-
-#### 方式 B：打进 `/dashboard`（单端口，可选）
-
-把前端打进 `nc-lib-gui` 再重建后端镜像，可只开 6080。步骤更长；想快请用方式 A。
-
-#### 注意
-
-1. `NUXT_PUBLIC_NC_BACKEND_URL` 必须是用户浏览器能访问的后端地址。
-2. 前端变更后：重建 `.output` → 覆盖 `/opt/mlnocodb/ui-output` → `docker restart mlnocodb-ui`。
-3. CentOS 7 宿主不必装 Node，UI 用 `node:22-slim` 容器即可。
-
-### 6.3 升级
-
-```bash
-# 构建机出新镜像 mlnocodb:0.1.2 → 传到服务器 docker load
-docker stop mlnocodb-api && docker rm mlnocodb-api
-# 用新镜像重新 run / compose up（数据在 /opt/mlnocodb/data 与 Meta PG，一般可保留）
-# 若使用 6100 UI：同步更新 ui-output 并 docker restart mlnocodb-ui
-```
-
-升级前建议：`pg_dump` Meta 库 `mlnoco`。
+升级前建议：`pg_dump` Meta 库 `mlnoco`。数据卷 `/opt/mlnocodb/data` 与 Meta PG 一般可保留。
 
 ---
 
-## 7. 常见问题
+## 8. 常见问题
 
 | 现象 | 处理 |
 |------|------|
-| 容器起不来 / DB 连不上 | 服务器能否 `telnet 192.168.100.89 5432`；PG `pg_hba.conf` 是否允许该服务器网段；密码是否 `%40` 编码 |
-| 页面空白或登录跳转错 | 检查 `NC_PUBLIC_URL` 是否与浏览器地址一致 |
-| 海量库加数据源仍报 FK SQL 错 | 确认跑的是 **自建 mlnocodb 镜像**，不是 Docker Hub 官方 `nocodb/nocodb` |
-| CentOS 装不上 Docker | 使用内网离线 Docker rpm；或换 Rocky/AlmaLinux 8+ 作宿主（更省事） |
-| SELinux 导致卷挂载异常 | 测试可临时 `setenforce 0`，生产用正确 `chcon`/`:z` 卷标签 |
+| 容器起不来 / Meta 连不上 | `telnet <meta-host> 5432`；`pg_hba.conf`；密码 `%40` 编码；确认用的是生产 Meta（如 `100.93`）而非开发机 |
+| 页面空白或登录跳转错 | `NC_PUBLIC_URL` / `NUXT_PUBLIC_NC_BACKEND_URL` 是否为浏览器可达地址（勿填 localhost） |
+| 海量库加源仍报 FK SQL 错 | 确认是 **自建 mlnocodb 镜像**，不是裸官方 `nocodb/nocodb` |
+| 添加 SQL Server 失败 / `Cannot find module 'mssql'` | 必须用 `Dockerfile.centos` 构建；`docker exec … require('mssql')` |
+| SQL Server 同步 0 表 | 检查 `searchPath`/Schema 是否为业务 schema |
+| 6100 与本地 UI 不一致 | 重新 build `.output` 并覆盖 `ui-output` 后重启 `mlnocodb-ui` |
+| CentOS 装不上 Docker | 内网离线 Docker rpm；或换 Rocky/AlmaLinux 8+ 作宿主 |
+| SELinux 卷挂载异常 | 测试可 `setenforce 0`，生产用正确 `chcon`/`:z` |
 
 ---
 
-## 8. 与本地开发的差异
+## 9. 与本地开发的差异
 
 | 项 | 本地开发 | CentOS 内网生产（本方案） |
 |----|----------|---------------------------|
-| Backend | `6080` 热更新 | 容器内 `8080` → 宿主 `6080` |
-| UI | `6100` 生产包 / `6110` HMR | **可发布** `6100`（挂载 `.output`）；`6080/dashboard` 为备用旧 GUI |
-| Meta | `.env` 中 `NC_DB` | 容器环境变量 `NC_DB` |
-| 补丁 | 源码直接跑 | **必须打进自建镜像** |
+| Backend | `6080`（可用 `start:backend:lite`） | 容器内 `8080` → 宿主 `6080` |
+| UI | `6100` 生产包 / `6110` HMR | **6100** 挂载 `.output`；`6080/dashboard` 备用 |
+| Meta | `.env` → `NC_DB`（常 `100.89`） | 容器环境变量（常生产 `100.93`，以实际为准） |
+| 补丁 / mssql | 源码 + `node_modules` | **必须** `Dockerfile.centos` 打进镜像 |
+| SQL Server | 本机网络可达测试库 | 服务器出站放行业务 SQL Server 端口 |
 
-Compose 模板：`docker-compose/centos-internal/docker-compose.yml`（API + 6100 UI）。
+Compose 模板：`docker-compose/centos-internal/docker-compose.yml`。
 
-更完整的备份、巡检见 [08-系统运维手册.md](./08-系统运维手册.md)。
+更完整的备份、巡检、MSSQL 运维见 [08-系统运维手册.md](./08-系统运维手册.md)。
