@@ -1,0 +1,15 @@
+# Runtime: official nocodb deps + our Vastbase-patched main.js
+# Avoids monorepo workspace: protocol / full pnpm install on air-gapped-ish servers
+FROM nocodb/nocodb:0.301.2
+
+ENV NODE_ENV=production \
+    PORT=8080 \
+    NC_DOCKER=0.6 \
+    NC_TOOL_DIR=/usr/app/data/
+
+COPY docker/main.js /usr/src/app/docker/main.js
+COPY src/public/ /usr/src/app/docker/public/
+
+# Skip litestream; run API directly
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["node", "docker/main.js"]

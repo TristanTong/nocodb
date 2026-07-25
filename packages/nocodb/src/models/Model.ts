@@ -635,8 +635,13 @@ export default class Model implements TableType {
 
     if (source?.isMeta(true, 1)) {
       schema = source.getConfig()?.schema;
-    } else if (source?.type === 'pg') {
-      schema = source.getConfig()?.searchPath?.[0];
+    } else if (source?.type === 'pg' || source?.type === 'mssql') {
+      const searchPath = source.getConfig()?.searchPath;
+      schema = Array.isArray(searchPath)
+        ? searchPath[0]
+        : typeof searchPath === 'string'
+          ? searchPath
+          : undefined;
     }
 
     return new BaseModelSqlv2({

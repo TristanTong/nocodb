@@ -257,13 +257,18 @@ const testDataBaseNames = {
   [ClientType.PG]: 'postgres',
   oracledb: 'xe',
   [ClientType.SQLITE]: 'a.sqlite',
+  [ClientType.MSSQL]: null,
 };
 
 export const getTestDatabaseName = (db: {
   client: ClientType;
   connection?: { database?: string };
 }) => {
-  if (db.client === ClientType.PG || db.client === ClientType.SNOWFLAKE)
+  if (
+    db.client === ClientType.PG ||
+    db.client === ClientType.SNOWFLAKE ||
+    db.client === ClientType.MSSQL
+  )
     return db.connection?.database;
   return testDataBaseNames[db.client as keyof typeof testDataBaseNames];
 };

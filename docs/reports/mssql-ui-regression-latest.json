@@ -1,0 +1,71 @@
+{
+  "meta": "192.168.100.89/mlnoco",
+  "backend": "http://127.0.0.1:6080",
+  "frontend": "http://127.0.0.1:6100",
+  "rounds": [
+    {
+      "round": 1,
+      "checks": {
+        "health": true,
+        "version": true,
+        "signin": true,
+        "roles_creator_or_super": true,
+        "me": true,
+        "create_base": true,
+        "list_sources": true,
+        "frontend": true,
+        "bundle_sql_server": true
+      },
+      "jwt_roles": {
+        "org-level-creator": true,
+        "super": true
+      },
+      "base_id": "prccnooekrjgzqv",
+      "asset": "BSuryXNw.js",
+      "pass": true
+    },
+    {
+      "round": 2,
+      "checks": {
+        "health": true,
+        "version": true,
+        "signin": true,
+        "roles_creator_or_super": true,
+        "me": true,
+        "create_base": true,
+        "list_sources": true,
+        "frontend": true,
+        "bundle_sql_server": true
+      },
+      "jwt_roles": {
+        "org-level-creator": true,
+        "super": true
+      },
+      "base_id": "prccnooekrjgzqv",
+      "asset": "BSuryXNw.js",
+      "pass": true
+    },
+    {
+      "round": 3,
+      "checks": {
+        "health": true,
+        "version": true,
+        "signin": true,
+        "roles_creator_or_super": true,
+        "me": true,
+        "create_base": true,
+        "list_sources": true,
+        "frontend": true,
+        "bundle_sql_server": true
+      },
+      "jwt_roles": {
+        "org-level-creator": true,
+        "super": true
+      },
+      "base_id": "prccnooekrjgzqv",
+      "asset": "BSuryXNw.js",
+      "pass": true
+    }
+  ],
+  "all_pass": true
+}

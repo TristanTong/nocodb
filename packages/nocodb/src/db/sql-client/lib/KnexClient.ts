@@ -105,6 +105,22 @@ abstract class KnexClient extends SqlClient {
     if (connectionConfig.connection && connectionConfig.connection.port)
       connectionConfig.connection.port = +connectionConfig.connection.port;
 
+    // Tedious requires options.port to be a number; UI often sends string ports
+    if (connectionConfig.client === 'mssql' && connectionConfig.connection) {
+      const conn = connectionConfig.connection;
+      conn.options = conn.options || {};
+      if (conn.port != null) {
+        conn.port = Number(conn.port);
+        conn.options.port = Number(conn.port);
+      } else if (conn.options.port != null) {
+        conn.options.port = Number(conn.options.port);
+      }
+      if (conn.options.encrypt === undefined) conn.options.encrypt = false;
+      if (conn.options.trustServerCertificate === undefined) {
+        conn.options.trustServerCertificate = true;
+      }
+    }
+
     this._connectionConfig = connectionConfig;
     if (connectionConfig.knex) {
       this.sqlClient = connectionConfig.knex;

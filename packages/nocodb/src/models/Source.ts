@@ -381,13 +381,38 @@ export default class Source implements SourceType {
     // merge integration config with source config
     // override integration config with source config if exists
     // only override database and searchPath
-    let mergedConfig = deepMerge(
-      integrationConfig,
-      partialExtract(config || {}, [
-        ['connection', 'database'],
-        ['searchPath'],
-      ]),
-    );
+    const overrides = partialExtract(config || {}, [
+      ['connection', 'database'],
+      ['searchPath'],
+    ]);
+
+    // Source config after private-integration create is often `{ client }` only.
+    // partialExtract then yields `searchPath: undefined` / empty database, and
+    // deepMerge would wipe integration defaults (e.g. UFDATA → falls back to dbo).
+    if (
+      overrides?.connection &&
+      (overrides.connection.database === undefined ||
+        overrides.connection.database === null ||
+        overrides.connection.database === '')
+    ) {
+      delete overrides.connection.database;
+      if (!Object.keys(overrides.connection).length) {
+        delete overrides.connection;
+      }
+    }
+    if (
+      overrides.searchPath === undefined ||
+      overrides.searchPath === null ||
+      overrides.searchPath === '' ||
+      (Array.isArray(overrides.searchPath) &&
+        (!overrides.searchPath.length ||
+          (overrides.searchPath.length === 1 &&
+            overrides.searchPath[0] === '')))
+    ) {
+      delete overrides.searchPath;
+    }
+
+    let mergedConfig = deepMerge(integrationConfig, overrides);
 
     // if searchPath is not array/string or if an empty array, remove it
     if (

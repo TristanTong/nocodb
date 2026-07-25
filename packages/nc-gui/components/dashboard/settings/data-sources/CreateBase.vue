@@ -162,6 +162,17 @@ function getConnectionConfig() {
     ...extraParameters,
   }
 
+  // Tedious/knex mssql requires numeric port
+  if (formState.value.dataSource.client === ClientType.MSSQL && connection.port != null) {
+    connection.port = Number(connection.port)
+    connection.options = {
+      encrypt: false,
+      trustServerCertificate: true,
+      ...(connection.options || {}),
+      port: Number(connection.port),
+    }
+  }
+
   connection.ssl = validateAndExtractSSLProp(connection, formState.value.sslUse, formState.value.dataSource.client)
 
   return connection
@@ -670,8 +681,8 @@ const isIntgrationDisabled = (integration: IntegrationType = {}) => {
                           <!-- Schema name -->
                           <a-form-item
                             v-if="
-                              ([ClientType.PG].includes(formState.dataSource.client) ||
-                                [ClientType.PG].includes(selectedIntegration?.sub_type)) &&
+                              ([ClientType.PG, ClientType.MSSQL].includes(formState.dataSource.client) ||
+                                [ClientType.PG, ClientType.MSSQL].includes(selectedIntegration?.sub_type)) &&
                               formState.dataSource.searchPath
                             "
                             :label="$t('labels.schemaName')"

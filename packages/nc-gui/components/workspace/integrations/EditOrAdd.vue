@@ -19,17 +19,21 @@ const isEditOrAddIntegrationModalOpen = computed({
 })
 
 const activeIntegrationSubType = computed(() => {
-  return pageMode.value === IntegrationsPageMode.EDIT
-    ? activeIntegration.value?.sub_type || activeIntegration.value?.config?.client
-    : activeIntegration.value?.type
+  // ADD: static initializor stores client on `type` (and now also `sub_type`)
+  // EDIT: prefer persisted sub_type / config.client
+  return (
+    activeIntegration.value?.sub_type ||
+    activeIntegration.value?.config?.client ||
+    activeIntegration.value?.type ||
+    activeIntegrationItem.value?.sub_type
+  )
 })
 
 const activeIntegrationType = computed(() => {
   switch (activeIntegrationSubType.value) {
     case integrationType.PostgreSQL:
-      return IntegrationCategoryType.DATABASE
     case integrationType.MySQL:
-      return IntegrationCategoryType.DATABASE
+    case integrationType.MSSQL:
     case integrationType.SQLITE:
       return IntegrationCategoryType.DATABASE
     default: {

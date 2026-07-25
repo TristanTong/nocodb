@@ -1,0 +1,50 @@
+# CentOS / 内网：Backend(6080) + 最新 nc-gui 生产 UI(6100)
+#
+# 用法概要：
+# 1) 构建机打出后端镜像 mlnocodb:0.1.1，并构建前端 .output
+# 2) 把镜像与 .output 拷到服务器
+# 3) 复制本文件为 docker-compose.yml，改 NC_DB / NUXT_PUBLIC_NC_BACKEND_URL
+# 4) docker compose up -d
+#
+# 访问：
+#   API/内置旧 GUI: http://<IP>:6080/dashboard
+#   最新 UI:         http://<IP>:6100/
+
+version: "2.4"
+
+services:
+  mlnocodb-api:
+    image: mlnocodb:0.1.1
+    container_name: mlnocodb-api
+    restart: always
+    ports:
+      - "6080:8080"
+    environment:
+      # 密码中的 @ 写成 %40；勿把真实密码提交 Git
+      NC_DB: "pg://192.168.100.93:5432?u=postgres&p=REPLACE_ME&d=mlnoco"
+      NC_DISABLE_TELE: "true"
+      NC_PUBLIC_URL: "http://REPLACE_HOST:6080"
+      TZ: "Asia/Shanghai"
+    volumes:
+      - /opt/mlnocodb/data:/usr/app/data
+
+  mlnocodb-ui:
+    # 任意带 Node ≥22 的镜像即可；也可用公司内网 node:22-slim 镜像
+    image: node:22-slim
+    container_name: mlnocodb-ui
+    restart: always
+    working_dir: /app
+    command: ["node", "server/index.mjs"]
+    ports:
+      - "6100:6100"
+    environment:
+      NITRO_HOST: "0.0.0.0"
+      NITRO_PORT: "6100"
+      PORT: "6100"
+      # 浏览器访问后端的地址（客户端会请求它），填服务器可达 IP/域名
+      NUXT_PUBLIC_NC_BACKEND_URL: "http://REPLACE_HOST:6080"
+      NUXT_PAGE_TRANSITION_DISABLE: "true"
+      TZ: "Asia/Shanghai"
+    # 构建机产出：packages/nc-gui/.output 整目录拷到服务器 /opt/mlnocodb/ui-output
+    volumes:
+      - /opt/mlnocodb/ui-output:/app:ro

@@ -161,6 +161,7 @@ const validators = computed(() => {
       }
       break
     case ClientType.PG:
+    case ClientType.MSSQL:
       clientValidations['dataSource.searchPath.0'] = [fieldRequiredValidator()]
       break
   }
@@ -263,6 +264,16 @@ function getConnectionConfig() {
   const connection = {
     ...formState.value.dataSource.connection,
     ...extraParameters,
+  }
+
+  if (formState.value.dataSource.client === ClientType.MSSQL && connection.port != null) {
+    connection.port = Number(connection.port)
+    connection.options = {
+      encrypt: false,
+      trustServerCertificate: true,
+      ...(connection.options || {}),
+      port: Number(connection.port),
+    }
   }
 
   connection.ssl = validateAndExtractSSLProp(connection, formState.value.sslUse, formState.value.dataSource.client)
@@ -942,7 +953,7 @@ watch(
                       <a-col :span="12">
                         <!-- Schema name -->
                         <a-form-item
-                          v-if="[ClientType.PG].includes(formState.dataSource.client) && formState.dataSource.searchPath"
+                          v-if="[ClientType.PG, ClientType.MSSQL].includes(formState.dataSource.client) && formState.dataSource.searchPath"
                           :label="$t('labels.schemaName')"
                           v-bind="validateInfos['dataSource.searchPath.0']"
                         >

@@ -136,6 +136,13 @@ export const allIntegrations: IntegrationItemType[] = [
     isAvailable: true,
   },
   {
+    title: 'objects.syncData.mssql',
+    sub_type: ClientType.MSSQL,
+    icon: iconMap.mssqlServer,
+    type: IntegrationCategoryType.DATABASE,
+    isAvailable: true,
+  },
+  {
     title: 'objects.syncData.sqlite',
     sub_type: ClientType.SQLITE,
     icon: iconMap.sqlServer,

@@ -74,6 +74,10 @@ export const clientTypes = [
     value: ClientType.PG,
   },
   {
+    text: 'SQL Server',
+    value: ClientType.MSSQL,
+  },
+  {
     text: 'SQLite',
     value: ClientType.SQLITE,
   },
@@ -118,6 +122,13 @@ const sampleConnectionData: { [key in ConnectionClientType]: DefaultConnection }
     port: '3306',
     user: 'root',
     password: 'password',
+    database: '_test',
+  },
+  [ClientType.MSSQL]: {
+    host: defaultHost,
+    port: '1433',
+    user: 'sa',
+    password: 'Password',
     database: '_test',
   },
   [ClientType.VITESS]: {
@@ -198,7 +209,11 @@ export const getDefaultConnectionConfig = (client: ClientType): ProjectCreateFor
   return {
     client,
     connection: sampleConnectionData[client],
-    searchPath: [ClientType.PG].includes(client) ? (client === ClientType.PG ? ['public'] : ['dbo']) : undefined,
+    searchPath: [ClientType.PG, ClientType.MSSQL].includes(client)
+      ? client === ClientType.PG
+        ? ['public']
+        : ['dbo']
+      : undefined,
   }
 }
 

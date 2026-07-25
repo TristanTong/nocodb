@@ -44,7 +44,7 @@
     "watch:run:playwright:pg:cyquick": "rm -f ./test_noco.db; cp ../../tests/playwright/fixtures/noco_0_91_7.db ./test_noco.db; cross-env NODE_ENV=test NC_DISABLE_TELE=true ENTRYPOINT=src/run/dockerRunPG_CyQuick.ts rspack --config rspack.dev.config.js",
     "test:unit": "cross-env NODE_ENV=test TS_NODE_PROJECT=./tests/unit/tsconfig.json mocha --require @swc-node/register tests/unit/index.test.ts --recursive --timeout 300000  --exit --delay",
     "test:unit:pg": "cp tests/unit/.pg.env tests/unit/.env; cross-env NODE_ENV=test TS_NODE_PROJECT=./tests/unit/tsconfig.json mocha --require @swc-node/register tests/unit/index.test.ts --recursive --timeout 300000  --exit --delay",
-    "docker:build": "EE=\"true-xc-test\" rspack  --config docker/rspack.config.js",
+    "docker:build": "cross-env EE=true-xc-test rspack --config docker/rspack.config.js",
     "mail": "email dev --dir src/services/mail/templates --port 6101"
   },
   "dependencies": {
@@ -154,6 +154,7 @@
     "minio": "^8.0.4",
     "mkdirp": "^2.1.6",
     "monacopilot": "^1.2.2",
+    "mssql": "^11.0.1",
     "multer": "^2.0.2",
     "mysql2": "^3.14.1",
     "nanoid": "^3.3.8",

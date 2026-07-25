@@ -4,5 +4,6 @@ export * from './MysqlUi';
 export * from './PgUi';
 export * from './OracleUi';
 export * from './SqliteUi';
+export * from './MssqlUi';
 export * from './SnowflakeUi';
 export * from './SqlUiFactory';

@@ -110,9 +110,6 @@ const deleteProject = (base: BaseType) => {
             </a-menu-item>
           </a-menu>
 
-          <general-social />
-
-          <general-sponsors :nav="true" />
         </div>
       </template>
 

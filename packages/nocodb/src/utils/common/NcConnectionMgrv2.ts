@@ -77,6 +77,25 @@ export default class NcConnectionMgrv2 {
       connection: {
         ...defaultConnectionConfig,
         ...connectionConfig.connection,
+        ...(connectionConfig.client === 'mssql'
+          ? {
+              port: Number(
+                connectionConfig.connection?.port ??
+                  connectionConfig.connection?.options?.port ??
+                  1433,
+              ),
+              options: {
+                encrypt: false,
+                trustServerCertificate: true,
+                ...(connectionConfig.connection?.options || {}),
+                port: Number(
+                  connectionConfig.connection?.port ??
+                    connectionConfig.connection?.options?.port ??
+                    1433,
+                ),
+              },
+            }
+          : {}),
         typeCast(field, next) {
           const res = next();
 

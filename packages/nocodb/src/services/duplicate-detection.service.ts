@@ -28,13 +28,18 @@ export class DuplicateDetectionService {
 
     // Get schema-qualified table name
     let tableName = model.table_name;
-    if (source.type === 'pg') {
-      // For PostgreSQL, include schema if available
+    if (source.type === 'pg' || source.type === 'mssql') {
+      // For PostgreSQL / SQL Server, include schema if available
       let schema: string;
       if (source?.isMeta?.(true, 1)) {
         schema = source.getConfig()?.schema;
       } else {
-        schema = source.getConfig()?.searchPath?.[0];
+        const searchPath = source.getConfig()?.searchPath;
+        schema = Array.isArray(searchPath)
+          ? searchPath[0]
+          : typeof searchPath === 'string'
+            ? searchPath
+            : undefined;
       }
       if (schema) {
         tableName = `${schema}.${tableName}`;
@@ -151,13 +156,18 @@ export class DuplicateDetectionService {
 
     // Get schema-qualified table name
     let tableName = model.table_name;
-    if (source.type === 'pg') {
-      // For PostgreSQL, include schema if available
+    if (source.type === 'pg' || source.type === 'mssql') {
+      // For PostgreSQL / SQL Server, include schema if available
       let schema: string;
       if (source?.isMeta?.(true, 1)) {
         schema = source.getConfig()?.schema;
       } else {
-        schema = source.getConfig()?.searchPath?.[0];
+        const searchPath = source.getConfig()?.searchPath;
+        schema = Array.isArray(searchPath)
+          ? searchPath[0]
+          : typeof searchPath === 'string'
+            ? searchPath
+            : undefined;
       }
       if (schema) {
         tableName = `${schema}.${tableName}`;
@@ -233,13 +243,18 @@ export class DuplicateDetectionService {
 
     // Get schema-qualified table name
     let tableName = model.table_name;
-    if (source.type === 'pg') {
-      // For PostgreSQL, include schema if available
+    if (source.type === 'pg' || source.type === 'mssql') {
+      // For PostgreSQL / SQL Server, include schema if available
       let schema: string;
       if (source?.isMeta?.(true, 1)) {
         schema = source.getConfig()?.schema;
       } else {
-        schema = source.getConfig()?.searchPath?.[0];
+        const searchPath = source.getConfig()?.searchPath;
+        schema = Array.isArray(searchPath)
+          ? searchPath[0]
+          : typeof searchPath === 'string'
+            ? searchPath
+            : undefined;
       }
       if (schema) {
         tableName = `${schema}.${tableName}`;

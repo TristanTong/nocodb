@@ -2433,7 +2433,7 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
 
   public getTnPath(tb: { table_name: string } | string, alias?: string) {
     const tn = typeof tb === 'string' ? tb : tb.table_name;
-    if (this.isPg && this.schema) {
+    if ((this.isPg || this.isMssql) && this.schema) {
       return `${this.schema}.${tn}${alias ? ` as ${alias}` : ``}`;
     } else if (this.isSnowflake) {
       return `${[
@@ -2465,6 +2465,10 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
 
   get isPg() {
     return this.clientType === 'pg';
+  }
+
+  get isMssql() {
+    return this.clientType === 'mssql';
   }
 
   get isMySQL() {

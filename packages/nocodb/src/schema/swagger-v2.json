@@ -10706,7 +10706,8 @@
                       "pg",
                       "snowflake",
                       "sqlite3",
-                      "databricks"
+                      "databricks",
+                      "mssql"
                     ],
                     "example": "mysql2",
                     "type": "string"
@@ -13146,7 +13147,8 @@
               "pg",
               "snowflake",
               "sqlite3",
-              "databricks"
+              "databricks",
+              "mssql"
             ],
             "example": "mysql2",
             "type": "string"
@@ -13320,7 +13322,8 @@
               "pg",
               "snowflake",
               "sqlite3",
-              "databricks"
+              "databricks",
+              "mssql"
             ],
             "type": "string"
           },

@@ -1089,7 +1089,7 @@ export class ColumnsService implements IColumnsService {
       );
 
       if (colBody.colOptions?.options) {
-        const supportedDrivers = ['mysql', 'mysql2', 'pg', 'sqlite3'];
+        const supportedDrivers = ['mysql', 'mysql2', 'pg', 'sqlite3', 'mssql'];
         const dbDriver = await reuseOrSave('dbDriver', reuse, async () =>
           NcConnectionMgrv2.get(source),
         );

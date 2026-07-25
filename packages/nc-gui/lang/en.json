@@ -647,6 +647,7 @@
       "zendesk": "Zendesk",
       "mysql": "MySQL",
       "postgreSQL": "PostgreSQL",
+      "mssql": "SQL Server",
       "sqlite": "SQLite",
       "dataBricks": "DataBricks",
       "oracle": "Oracle",

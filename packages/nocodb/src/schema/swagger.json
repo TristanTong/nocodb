@@ -16571,7 +16571,8 @@
                       "pg",
                       "snowflake",
                       "sqlite3",
-                      "databricks"
+                      "databricks",
+                      "mssql"
                     ],
                     "example": "mysql2",
                     "type": "string"
@@ -16689,15 +16690,16 @@
                         "oracledb",
                         "pg",
                         "snowflake",
-                        "sqlite3",
-                        "databricks"
-                      ],
-                      "example": "mysql2",
-                      "type": "string"
-                    },
-                    "connection": {
-                      "type": "object",
-                      "description": "Connection Config",
+"sqlite3",
+                      "databricks",
+                      "mssql"
+                    ],
+                    "example": "mysql2",
+                    "type": "string"
+                  },
+                  "connection": {
+                    "type": "object",
+                    "description": "Connection Config",
                       "properties": {
                         "user": {
                           "type": "string",
@@ -21726,7 +21728,8 @@
               "pg",
               "snowflake",
               "sqlite3",
-              "databricks"
+              "databricks",
+              "mssql"
             ],
             "example": "mysql2",
             "type": "string"
@@ -21966,7 +21969,8 @@
               "pg",
               "snowflake",
               "sqlite3",
-              "databricks"
+              "databricks",
+              "mssql"
             ],
             "type": "string"
           },
