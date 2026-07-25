@@ -2433,8 +2433,11 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
 
   public getTnPath(tb: { table_name: string } | string, alias?: string) {
     const tn = typeof tb === 'string' ? tb : tb.table_name;
-    if ((this.isPg || this.isMssql) && this.schema) {
+    if (this.isPg && this.schema) {
       return `${this.schema}.${tn}${alias ? ` as ${alias}` : ``}`;
+    } else if (this.isMssql) {
+      const schema = this.schema || 'dbo';
+      return `${schema}.${tn}${alias ? ` as ${alias}` : ``}`;
     } else if (this.isSnowflake) {
       return `${[
         this.dbDriver.client.config.connection.database,
@@ -2469,6 +2472,11 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
 
   get isMssql() {
     return this.clientType === 'mssql';
+  }
+
+  /** PG and MSSQL support returning/OUTPUT for insert identity backfill */
+  get supportsReturning() {
+    return this.isPg || this.isMssql;
   }
 
   get isMySQL() {
@@ -2569,7 +2577,7 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
       let response;
       const query = this.dbDriver(this.tnPath).insert(insertObj);
 
-      if (this.isPg && this.model.primaryKey) {
+      if (this.supportsReturning && this.model.primaryKey) {
         query.returning(
           `${this.model.primaryKey.column_name} as ${this.model.primaryKey.id}`,
         );
@@ -2901,13 +2909,16 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
             returningObj[col.title] = col.column_name;
           }
 
+          const returningCols = this.model.primaryKeys?.length
+            ? this.isMssql
+              ? this.model.primaryKeys.map((col) => col.column_name)
+              : returningObj
+            : '*';
           responses =
-            !raw && this.isPg
+            !raw && this.supportsReturning
               ? await trx
                   .batchInsert(this.tnPath, toInsert, chunkSize)
-                  .returning(
-                    this.model.primaryKeys?.length ? returningObj : '*',
-                  )
+                  .returning(returningCols)
               : await trx.batchInsert(this.tnPath, toInsert, chunkSize);
         }
 
@@ -3364,6 +3375,7 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
         await transaction.commit();
       } catch (ex) {
         await transaction.rollback();
+        throw ex;
       }
 
       if (apiVersion === NcApiVersion.V3) {
@@ -5287,6 +5299,16 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
         return res[0].insertId;
       }
       return res;
+    } else if (this.isMssql) {
+      const res = await trx.raw(query);
+      // Tedious/knex may return row array, or { recordset }, or [rows, metadata]
+      if (Array.isArray(res)) {
+        if (res.length && Array.isArray(res[0]) && typeof res[0][0] === 'object') {
+          return res[0];
+        }
+        return res;
+      }
+      return (res as any)?.recordset ?? res;
     } else {
       return await trx.raw(query);
     }
@@ -6696,9 +6718,8 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
     const runAfterForLoop = [];
     const updatedColIds = [];
 
-    // Handle autoincrement primary key columns for insert operations
-    if (isInsertData && !extra?.undo) {
-      // Handle primary key
+    // Never write AI/IDENTITY PKs into INSERT/UPDATE SET (MSSQL rejects IDENTITY updates)
+    if (!extra?.undo) {
       for (const pkColumn of this.model.primaryKeys) {
         if (pkColumn.ai) {
           const keyName =
@@ -6706,7 +6727,7 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
               ? pkColumn.column_name
               : pkColumn.title;
 
-          if (data[keyName]) {
+          if (data[keyName] !== undefined) {
             delete data[keyName];
           }
         }

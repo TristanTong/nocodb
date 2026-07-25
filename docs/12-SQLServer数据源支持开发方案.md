@@ -331,13 +331,17 @@ flowchart LR
 | ✅ Add Source | 修复 `swagger` `BaseReq.type` 增加 `mssql`；Tedious `port` 强制 number；API 创建源成功 |
 | ✅ 表同步 | 修复 `Source.getConfig`：私有 Integration 场景下空 `searchPath` 不再覆盖 Integration 的 schema（否则落到 `dbo`→0 表）；`MssqlClient.schema` 兼容 string/array；`UFDATA` 等非 dbo 可同步 |
 | ✅ 网格只读 | 修复 `Model.getBaseModelSQL` / `BaseModelSqlv2.getTnPath`：MSSQL 使用 `searchPath` 生成 `schema.table`（否则 `Invalid object name`）；`bas_part`/`bom_bom` records API 200 |
-| ⏳ 可写 CRUD | Phase2+（IDENTITY / 只读写开关等）按里程碑 |
+| ✅ 可写 CRUD（Phase 2） | `supportsReturning`（OUTPUT/IDENTITY 回填）；`prepareNocoData` 剥离 AI/IDENTITY 防 UPDATE 报错；batch `returning` 用列名（避免 knex mssql 空 OUTPUT）；只读源 403；验收 `node scripts/compat/test_mssql_phase2_crud.mjs` → `PHASE2_ALL_PASS` |
+| ⏳ DDL / 公式 | Phase 3/4 可选 |
 
 ### 验收建议
 
 1. `pnpm --filter nocodb-sdk run build`
 2. `python scripts/compat/test_mssql_wiring.py`
-3. `NODE_OPTIONS=--max_old_space_size=8192 pnpm start:backend` + `pnpm start:frontend`
-4. UI：Base → 数据源 → 选择 **SQL Server** → 填主机/1433/账号库名/schema(`dbo`) → 测试连接 → 同步表 → 网格读写
+3. 低内存开发机可用：`pnpm start:backend:lite`（无 TsChecker）+ `pnpm start:frontend`
+4. Phase2：设置 `NC_TEST_PASSWORD` / `NC_MSSQL_PASSWORD` 后 `pnpm test:mssql-phase2`
+5. UI：Base → 数据源 → **SQL Server** → schema（如 `UFDATA`）→ 测试连接 → 同步 → 网格读写
 
 Custom Sync / EE 门控：**未做**（按方案约定）。
+
+**发版**：`v0.1.2` — SQL Server 外部数据源 MVP（连接 / 同步 / 只读网格 / 隔离表 CRUD）。

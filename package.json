@@ -37,6 +37,8 @@
     "start:frontend:dev": "pnpm --filter=nc-gui run dev:hmr",
     "start:frontend:build": "pnpm --filter=nc-gui run build",
     "start:backend": "pnpm --filter=nocodb run start",
+    "start:backend:lite": "pnpm --filter=nocodb run watch:run:lite",
+    "test:mssql-phase2": "node scripts/compat/test_mssql_phase2_crud.mjs",
     "test:frontend-open": "node scripts/compat/measure_frontend_open.mjs --url http://127.0.0.1:6100/ --budget 3000",
     "lint:staged:playwright": "cd ./tests/playwright; pnpm dlx lint-staged; cd -",
     "start:mysql": "docker-compose -f ./tests/playwright/scripts/docker-compose-mysql-playwright.yml up -d",

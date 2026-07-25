@@ -57,7 +57,7 @@ export const baseModelInsert = (baseModel: IBaseModelSqlV2) => {
       // const driver = trx ? trx : baseModel.dbDriver;
 
       const query = baseModel.dbDriver(baseModel.tnPath).insert(insertObj);
-      if (baseModel.isPg && baseModel.model.primaryKey) {
+      if (baseModel.supportsReturning && baseModel.model.primaryKey) {
         query.returning(
           `${baseModel.model.primaryKey.column_name} as ${baseModel.model.primaryKey.id}`,
         );
@@ -347,13 +347,17 @@ export const baseModelInsert = (baseModel: IBaseModelSqlV2) => {
           returningObj[col.title] = col.column_name;
         }
 
+        // knex mssql: returning({ alias: col }) yields empty OUTPUT clause — use column names
+        const returningCols = baseModel.model.primaryKeys?.length
+          ? baseModel.isMssql
+            ? baseModel.model.primaryKeys.map((col) => col.column_name)
+            : returningObj
+          : '*';
         responses =
-          !raw && baseModel.isPg
+          !raw && baseModel.supportsReturning
             ? await trx
                 .batchInsert(baseModel.tnPath, insertDatas, chunkSize)
-                .returning(
-                  baseModel.model.primaryKeys?.length ? returningObj : '*',
-                )
+                .returning(returningCols)
             : await trx.batchInsert(baseModel.tnPath, insertDatas, chunkSize);
       }
 
