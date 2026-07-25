@@ -346,4 +346,6 @@ flowchart LR
 
 Custom Sync / EE 门控 / Windows Auth / Meta=MSSQL：**未做**（按方案约定）。
 
-**发版**：`v0.1.2` 已含 Phase 0～2；Phase 3～5 随后续提交合入（本批不升版本、不打 tag）。
+**发版**：
+- `v0.1.2` — Phase 0～2（连接 / 同步 / 只读网格 / CRUD）
+- `v0.1.3` — Phase 3～5（DDL / schema 只读门禁 / 公式 / 文档 / CentOS 镜像安装 mssql）

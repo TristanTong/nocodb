@@ -19,7 +19,7 @@ version: "2.4"
 
 services:
   mlnocodb-api:
-    image: mlnocodb:0.1.2
+    image: mlnocodb:0.1.3
     container_name: mlnocodb-api
     restart: always
     ports:

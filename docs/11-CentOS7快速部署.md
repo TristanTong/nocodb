@@ -4,7 +4,7 @@
 |----|------|
 | 适用系统 | CentOS 7.6（内网服务器） |
 | 推荐方式 | **Docker 双容器**：API `6080` + 最新 UI `6100` |
-| 源码基线 | mlnocodb `0.301.2`；里程碑 tag `v0.1.2`（含 SQL Server MVP）；后续 Phase 3～5 以分支提交合入 |
+| 源码基线 | mlnocodb `0.301.2`；推荐里程碑 tag **`v0.1.3`**（含 SQL Server Phase 0～5 + CentOS `mssql` 镜像） |
 | 推荐 Dockerfile | `packages/nocodb/Dockerfile.centos`（官方 `0.301.2` + 自研 `main.js` + **`mssql` 驱动**） |
 | 不推荐 | 在 CentOS 7 上直接安装 Node.js 22（glibc 过旧，易失败） |
 
@@ -52,8 +52,8 @@
 ```bash
 git clone <你们的仓库地址> mlnocodb
 cd mlnocodb
-# 发布点示例：v0.1.2；若需 Phase3～5 DDL/公式/Docker mssql 修复，用含对应提交的分支
-git checkout v0.1.2   # 或当前发布分支 / 指定 commit
+# 推荐发布点
+git checkout v0.1.3
 
 pnpm bootstrap
 
@@ -67,18 +67,18 @@ pnpm run build        # 或能产出 docker/main.js 的惯用命令
 
 ```bash
 cd packages/nocodb
-docker build -t mlnocodb:0.1.2 -f Dockerfile.centos .
+docker build -t mlnocodb:0.1.3 -f Dockerfile.centos .
 
 # 验收驱动（构建阶段已执行；也可运行时再验）
-docker run --rm mlnocodb:0.1.2 node -e "require('mssql'); console.log('mssql_ok')"
+docker run --rm mlnocodb:0.1.3 node -e "require('mssql'); console.log('mssql_ok')"
 
 # 导出给内网（无私有仓库时）
-docker save mlnocodb:0.1.2 | gzip > mlnocodb-0.1.2.tar.gz
+docker save mlnocodb:0.1.3 | gzip > mlnocodb-0.1.3.tar.gz
 ```
 
 > 勿使用未改的官方镜像直接当生产：缺 Vastbase 补丁且 **`require('mssql')` 会失败**，SQL Server 数据源不可用。
 
-把 `mlnocodb-0.1.2.tar.gz` 拷到 CentOS 服务器（scp / U 盘 / 内网文件站）。
+把 `mlnocodb-0.1.3.tar.gz` 拷到 CentOS 服务器（scp / U 盘 / 内网文件站）。
 
 ---
 
@@ -99,7 +99,7 @@ sudo usermod -aG docker $USER   # 重新登录后生效
 加载镜像：
 
 ```bash
-gunzip -c mlnocodb-0.1.2.tar.gz | docker load
+gunzip -c mlnocodb-0.1.3.tar.gz | docker load
 docker images | grep mlnocodb
 ```
 
