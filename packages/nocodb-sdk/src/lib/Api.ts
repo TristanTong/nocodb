@@ -2695,7 +2695,8 @@ export interface SourceType {
     | 'pg'
     | 'snowflake'
     | 'sqlite3'
-    | 'databricks';
+    | 'databricks'
+    | 'mssql';
 }
 
 /**
@@ -2784,7 +2785,8 @@ export interface BaseReqType {
     | 'pg'
     | 'snowflake'
     | 'sqlite3'
-    | 'databricks';
+    | 'databricks'
+    | 'mssql';
   fk_integration_id?: string;
 }
 
@@ -13814,7 +13816,8 @@ export class Api<
           | 'pg'
           | 'snowflake'
           | 'sqlite3'
-          | 'databricks';
+          | 'databricks'
+          | 'mssql';
         connection?: {
           host?: string;
           port?: string;
@@ -13857,7 +13860,7 @@ export class Api<
    * DB Type
    * @example mysql2
    *\
-  client?: "mysql" | "mysql2" | "oracledb" | "pg" | "snowflake" | "sqlite3" | "databricks",
+  client?: "mysql" | "mysql2" | "oracledb" | "pg" | "snowflake" | "sqlite3" | "databricks" | "mssql",
   \** Connection Config *\
   connection?: {
   \** DB User *\
@@ -13903,7 +13906,8 @@ export class Api<
             | 'pg'
             | 'snowflake'
             | 'sqlite3'
-            | 'databricks';
+            | 'databricks'
+            | 'mssql';
           /** Connection Config */
           connection?: {
             /** DB User */

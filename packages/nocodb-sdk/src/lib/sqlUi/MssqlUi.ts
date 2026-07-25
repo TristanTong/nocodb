@@ -295,7 +295,9 @@ export class MssqlUi implements SqlUi {
       case 'smallmoney':
         return '2';
       default:
-        return ' ';
+        // Must be empty (not a space). A truthy space becomes `nvarchar(MAX, )`
+        // in MssqlClient.alterTableColumn and is invalid T-SQL.
+        return '';
     }
   }
 

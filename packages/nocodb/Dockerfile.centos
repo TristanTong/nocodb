@@ -1,4 +1,4 @@
-# Runtime: official nocodb deps + our Vastbase-patched main.js
+# Runtime: official nocodb deps + our Vastbase/MSSQL-patched main.js
 # Avoids monorepo workspace: protocol / full pnpm install on air-gapped-ish servers
 FROM nocodb/nocodb:0.301.2
 
@@ -9,6 +9,12 @@ ENV NODE_ENV=production \
 
 COPY docker/main.js /usr/src/app/docker/main.js
 COPY src/public/ /usr/src/app/docker/public/
+
+# Official CE image omits the mssql driver (EE add-on). main.js externalizes
+# node_modules, so SQL Server external sources need the package at runtime.
+RUN cd /usr/src/app \
+  && npm install mssql@11.0.1 --omit=dev --no-save \
+  && node -e "require('mssql'); console.log('mssql_ok')"
 
 # Skip litestream; run API directly
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]

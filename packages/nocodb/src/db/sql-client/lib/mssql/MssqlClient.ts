@@ -2621,9 +2621,16 @@ class MssqlClient extends KnexClient {
 
     const defaultValue = this.sanitiseDefaultValue(n.cdf);
     const shouldSanitize = true;
+    const dtLower = String(n.dt || '').toLowerCase();
+    const needsScale = ['decimal', 'numeric'].includes(dtLower);
+    const dtxp = n.dtxp === 0 || n.dtxp ? String(n.dtxp).trim() : '';
+    const dtxs = n.dtxs === 0 || n.dtxs ? String(n.dtxs).trim() : '';
+    // nvarchar(MAX) / varchar(255) must not append a trailing ",scale"
     const scaleAndPrecision =
-      !getDefaultLengthIsDisabled(n.dt) && n.dtxp
-        ? `(${n.dtxp}${n.dtxs ? `,${n.dtxs}` : ''})`
+      !getDefaultLengthIsDisabled(n.dt) && dtxp
+        ? needsScale && dtxs
+          ? `(${dtxp},${dtxs})`
+          : `(${dtxp})`
         : '';
 
     if (change === 0) {

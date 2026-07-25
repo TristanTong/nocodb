@@ -723,6 +723,11 @@ export class TablesService {
       source = base.sources.find((b) => b.id === param.sourceId);
     }
 
+    // External sources may forbid DDL (sync-only). Enforce before CREATE TABLE.
+    if (source?.is_schema_readonly) {
+      NcError.get(context).sourceMetaReadOnly(source.alias);
+    }
+
     if (!param.isDuplicateOperation) {
       // add CreatedTime and LastModifiedTime system columns if missing in request payload
       tableCreatePayLoad.columns = repopulateCreateTableSystemColumns(context, {

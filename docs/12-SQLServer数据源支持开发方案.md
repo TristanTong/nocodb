@@ -332,16 +332,18 @@ flowchart LR
 | ✅ 表同步 | 修复 `Source.getConfig`：私有 Integration 场景下空 `searchPath` 不再覆盖 Integration 的 schema（否则落到 `dbo`→0 表）；`MssqlClient.schema` 兼容 string/array；`UFDATA` 等非 dbo 可同步 |
 | ✅ 网格只读 | 修复 `Model.getBaseModelSQL` / `BaseModelSqlv2.getTnPath`：MSSQL 使用 `searchPath` 生成 `schema.table`（否则 `Invalid object name`）；`bas_part`/`bom_bom` records API 200 |
 | ✅ 可写 CRUD（Phase 2） | `supportsReturning`（OUTPUT/IDENTITY 回填）；`prepareNocoData` 剥离 AI/IDENTITY 防 UPDATE 报错；batch `returning` 用列名（避免 knex mssql 空 OUTPUT）；只读源 403；验收 `node scripts/compat/test_mssql_phase2_crud.mjs` → `PHASE2_ALL_PASS` |
-| ⏳ DDL / 公式 | Phase 3/4 可选 |
+| ✅ DDL / Links（Phase 3） | `MssqlClient` tableCreate/tableUpdate/relationCreate；默认源 `is_schema_readonly` 拦截 DDL（TC-MSSQL-27）；允许改结构后 API 建表/加列；默认值 `GETDATE()`/`NEWID()` 探针；Links：HM/BT 需 schema 可写，跨 schema / Custom Sync 不做；验收 `pnpm test:mssql-phase3` → `PHASE3_ALL_PASS` |
+| ✅ 公式（Phase 4） | `MssqlUi.getUnsupportedFnList` 禁用 REGEX/ARRAY/DATEADD 等；`functionMappings/mssql`：`TRIM→LTRIM(RTRIM)`、`NOW→GETDATE`、`COALESCE`/`LEN`/`CONCAT`/`IF`；验收 `pnpm test:mssql-phase4` → `PHASE4_ALL_PASS` |
+| ✅ 工程化（Phase 5） | `docs/06` TC-MSSQL 全表；`test_mssql_wiring.py` 含 Dockerfile/文档/公式静态项；`Dockerfile.centos` 安装 `mssql`；`docs/07`/`docs/08` 补充 SQL Server 连接与 `1433`/TLS |
 
 ### 验收建议
 
 1. `pnpm --filter nocodb-sdk run build`
-2. `python scripts/compat/test_mssql_wiring.py`
+2. `python scripts/compat/test_mssql_wiring.py`（或 `pnpm test:mssql-wiring`）
 3. 低内存开发机可用：`pnpm start:backend:lite`（无 TsChecker）+ `pnpm start:frontend`
-4. Phase2：设置 `NC_TEST_PASSWORD` / `NC_MSSQL_PASSWORD` 后 `pnpm test:mssql-phase2`
-5. UI：Base → 数据源 → **SQL Server** → schema（如 `UFDATA`）→ 测试连接 → 同步 → 网格读写
+4. Phase2～4：设置 `NC_TEST_PASSWORD` / `NC_MSSQL_PASSWORD` 后 `pnpm test:mssql-phase2` / `phase3` / `phase4`
+5. UI：Base → 数据源 → **SQL Server** → schema（如 `UFDATA`）→ 测试连接 → 同步 → 网格读写；DDL 需关闭「禁止改结构」
 
-Custom Sync / EE 门控：**未做**（按方案约定）。
+Custom Sync / EE 门控 / Windows Auth / Meta=MSSQL：**未做**（按方案约定）。
 
-**发版**：`v0.1.2` — SQL Server 外部数据源 MVP（连接 / 同步 / 只读网格 / 隔离表 CRUD）。
+**发版**：`v0.1.2` 已含 Phase 0～2；Phase 3～5 随后续提交合入（本批不升版本、不打 tag）。

@@ -18,6 +18,10 @@ def check_files() -> list[tuple[str, bool, str]]:
         ROOT / "packages/nocodb/src/db/sql-client/lib/mssql/MssqlClient.ts",
         ROOT / "packages/nocodb/src/db/sql-client/lib/mssql/mssql.queries.ts",
         ROOT / "packages/nocodb/src/db/sql-mgr/code/models/xc/ModelXcMetaMssql.ts",
+        ROOT / "packages/nocodb/src/db/functionMappings/mssql.ts",
+        ROOT / "scripts/compat/test_mssql_phase2_crud.mjs",
+        ROOT / "scripts/compat/test_mssql_phase3_ddl.mjs",
+        ROOT / "scripts/compat/test_mssql_phase4_formula.mjs",
     ]
     for p in paths:
         checks.append((f"exists:{p.name}", p.exists(), str(p)))
@@ -35,6 +39,36 @@ def check_files() -> list[tuple[str, bool, str]]:
 
     gui = (ROOT / "packages/nc-gui/utils/baseCreateUtils.ts").read_text(encoding="utf-8")
     checks.append(("UI clientTypes MSSQL", "ClientType.MSSQL" in gui and "SQL Server" in gui, "baseCreateUtils"))
+
+    mssql_ui = (ROOT / "packages/nocodb-sdk/src/lib/sqlUi/MssqlUi.ts").read_text(encoding="utf-8")
+    checks.append(
+        (
+            "MssqlUi.getUnsupportedFnList",
+            "getUnsupportedFnList" in mssql_ui and "REGEX_MATCH" in mssql_ui,
+            "MssqlUi.ts",
+        )
+    )
+
+    fmap = (ROOT / "packages/nocodb/src/db/functionMappings/mssql.ts").read_text(encoding="utf-8")
+    checks.append(("formula TRIM→LTRIM/RTRIM", "LTRIM(RTRIM" in fmap, "functionMappings/mssql.ts"))
+    checks.append(("formula COALESCE map", "COALESCE" in fmap, "functionMappings/mssql.ts"))
+
+    dockerfile = (ROOT / "packages/nocodb/Dockerfile.centos").read_text(encoding="utf-8")
+    checks.append(
+        (
+            "Dockerfile.centos installs mssql",
+            "npm install mssql" in dockerfile and "require('mssql')" in dockerfile,
+            "Dockerfile.centos",
+        )
+    )
+
+    docs07 = (ROOT / "docs/07-用户操作说明书.md").read_text(encoding="utf-8")
+    checks.append(("docs/07 SQL Server", "SQL Server" in docs07, "07-用户操作说明书.md"))
+
+    docs08 = (ROOT / "docs/08-系统运维手册.md").read_text(encoding="utf-8")
+    checks.append(
+        ("docs/08 MSSQL port/TLS", "1433" in docs08 and ("SQL Server" in docs08 or "mssql" in docs08), "08-系统运维手册.md")
+    )
     return checks
 
 
