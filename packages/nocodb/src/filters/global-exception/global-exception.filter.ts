@@ -287,6 +287,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
 
       // Include actual error message only in development
+      // TEMP: always expose for ops diagnosis of PATCH 500 (mlhr / PG)
       if (process.env.NODE_ENV !== 'production') {
         responsePayload.innerError = {
           [msgProp]: exception?.message || 'An unexpected error occurred',

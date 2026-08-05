@@ -1,0 +1,165 @@
+采用方式一：从源码开发，将源码clone到D:\Project\nocodb 这个文件夹下，
+注意默认端口号全部要改掉，改成6000 段，不与现在运行的应用或服务冲突。
+
+列出当前数据库连接情况
+
+将应用程序的数据不使用SQLite3,使用以下已经运行了nocodb应用程序的数据库
+192.168.100.89
+postgres
+Pass@w0rd
+数据库：mlnoco
+
+查找nocodb的版本号
+
+提交变更的代码并push 打tag v0.1.0 
+
+Backend http://localhost:6080
+Frontend http://localhost:6100
+有什么区别？为什么看到的两个网址登陆进去，UI版本不一致，一个是0.301.2 一个是0.301.3
+
+增加以下数据库连接，没有问题，正常配置成功：
+# 海量数据库（PostgreSQL 兼容驱动）
+DB_HOST=192.168.100.99
+DB_PORT=5432
+DB_USER=sa
+DB_PASSWORD=PassW0rd@321
+在http://localhost:6100/#/nc/pw4yksn9i7x1fx4?page=data-source增加数据源metabase_rpt时提示如下错误：
+SELECT 
+          sch.nspname    AS ts,
+          pc.conname     AS cstn,
+          tbl.relname    AS tn,
+          col.attname    AS cn,
+          f_sch.nspname  AS foreign_table_schema,
+          f_tbl.relname  AS rtn,
+          f_col.attname  AS rcn,
+          pc.confupdtype AS ur,
+          pc.confdeltype AS dr
+        FROM pg_constraint pc
+          LEFT JOIN LATERAL UNNEST(pc.conkey)  WITH ORDINALITY AS u(attnum, attposition)   ON TRUE
+          LEFT JOIN LATERAL UNNEST(pc.confkey) WITH ORDINALITY AS f_u(attnum, attposition) ON f_u.attposition = u.attposition
+          JOIN pg_class tbl ON tbl.oid = pc.conrelid
+          JOIN pg_namespace sch ON sch.oid = tbl.relnamespace
+          LEFT JOIN pg_attribute col ON (col.attrelid = tbl.oid AND col.attnum = u.attnum)
+          LEFT JOIN pg_class f_tbl ON f_tbl.oid = pc.confrelid
+          LEFT JOIN pg_namespace f_sch ON f_sch.oid = f_tbl.relnamespace
+          LEFT JOIN pg_attribute f_col ON (f_col.attrelid = f_tbl.oid AND f_col.attnum = f_u.attnum)
+        WHERE pc.contype = 'f' AND sch.nspname = $1 AND f_sch.nspname = sch.nspname
+        ORDER BY tn; - syntax error at or near "."
+
+项目根目录下新增docs文件夹，补齐项目需求分析文档、架构设计文档、系统设计文档、详细设计文档、自动化测试方案、测试用例文档、用户操作说明书、系统运维手册。
+
+根据docs下自动化测试文档方案，执行测试用例文档中的用例，跑一轮自动化测试输出测试报告。
+需要加强对新增的海量数据库数据源表格的操作测试，可完善测试文档后再进行。、
+
+登陆账号：
+邮箱tristantong@qq.com
+密码trh876231trh
+请继续完成测试
+
+需要优化http://localhost:6100/打开速度，目前打开有点慢
+
+http://localhost:6100/打开速还是太慢，还需要再查明情况，修复后加强测试，直至打开响应时间3秒以内才能算完成任务。
+
+与nocodb仓库https://github.com/nocodb/nocodb最新的tag2026.07.0对比功能差异，给出建议的开发方案，
+目前的需求是要保留这个版本下的功能，因为大多数是免费功能，最新nocodb很多功能开始要收费受限功能使用了，如果我有错误，请指出。
+我需要从最新的版本2026.07.0中找一下显眼的比较实用好的功能，加入至当前的分支版本中，逐步自己有选择性的迭代开发本地nocodb功能。
+
+提交变更的代码并push 打tag v0.1.1 
+
+如何快速部署至内部网络服务器中，CentOS7.6
+
+CentOS目标部署服务器:
+192.168.100.73
+root
+MedLinket@2025
+请在本地Windows开发机上打包Docker镜像，按照11-CentOS7快速部署.md文档自动完成部署安装Docker与NocoDB应用。
+需要部署6100端口的最新UI至192.168.100.73的80端口
+
+需要将192.168.100.73生产环境中应用数据库连接从192.168.100.89 变更为192.168.100.93
+
+与nocodb仓库https://github.com/nocodb/nocodb最新的源码对比，我需要让本地代码仓库的功能支持SqlServer数据库插件连接，
+请提供可行的开发方案，输出文档至docs目录下。
+
+本地开发环境，数据库环境切换至192。168。100。89
+
+以「历史 CE 的 MssqlClient + 上游 MssqlUi」为蓝本，接入本仓库现有 SqlClientFactory / 数据源创建流程，做出与 PG/MySQL 同级的外部数据源能力；Custom Sync / EE 门控功能暂不做。
+
+
+补齐测试用例文档，使用如下数据库进行测试
+SQLServer连接测试库
+192.168.1.11,5678
+sa
+Pass@w0rd
+数据库Metabase_ODS
+
+启动开发环境服务与应用，需要检查连接100.89数据库测试环境
+多进行几轮回归测试，确保界面UI上有SqlServer的选择和配置
+
+http://localhost:6100/#/w30hbjoc/pw4yksn9i7x1fx4
+Add Data Source 
+Add Source 操作时，提示Invalid request body
+编写更全的测试用例，覆盖12-SQLServer数据源支持开发方案.md中所有开发阶段Phase 1 -Phase 5
+多测试一轮界面中全部操作
+
+页面左下角try nocodb cloud和相关广告需要去掉
+
+启动开发环境服务与应用，需要检查连接100.89数据库测试环境
+
+http://192.168.100.73 NocoDB应用，现在连的是哪个服务器的数据库？
+
+对比文档 12-SQLServer数据源支持开发方案.md，根据当前完整进度列出下一步开发计划。
+
+提交变更的代码，备注完成的功能点并push。
+
+立刻开工，完成P2,尽快开发完成给我确认验收，发布下一个版本，打tag v0.1.2。
+
+继续按12-SQLServer数据源支持开发方案.md 开发完成，并加强测试，提交变更的代码，备注完成的功能点并push。不打tag不升版本。
+
+更新项目需求分析文档、架构设计文档、系统设计文档、详细设计文档、自动化测试方案、测试用例文档、用户操作说明书、系统运维手册。
+
+更新下11-CentOS7快速部署.md
+
+提交变更的代码，备注完成的功能点并push。
+
+启动开发环境服务与应用，需要检查连接100.89数据库测试环境
+
+发布下一个版本，打tag v0.1.3并push。
+
+CentOS目标部署服务器:
+192.168.100.73
+root
+MedLinket@2025
+将服务器上部署正在运行的NocoDB Docker Image镜像导出备份一份（可迁移部署至另外的服务器部署包），下载至本地电脑D盘
+
+
+CentOS目标部署服务器IP已发生变化:
+192.168.100.93
+root
+MedLinket@2025
+应用链接的postgreSQL变更为：
+192.168.100.97
+postgres
+Pass@w0rd
+重新服务器上的mlnocodb docker应用
+
+再扫描探查一下生产环境配置情况和IP 端口访问情况。
+
+全部表格的下载功能都点了无法下载，只有提示：Preparing CSV for Download ...
+http://192.168.100.93/#/w30hbjoc/phr43fj3yvo56qr/mn6pd42obixv08z/vwfdauan1nf2yh6c
+
+上传操作是否也存在问题？也需要做路径反代？
+
+NocoDB测试服务器
+192.168.100.89
+root
+Pass@w0rd
+将此代码库中最新的nocodb应用通过docker部署至测试服务器，
+nocodb应用连接至测试数据库pg://192.168.100.89:5432?u=postgres&p=Pass@w0rd&d=mlnoco
+
+要用80端口作反代，连接UI与API
+
+启动开发环境服务与应用，需要检查连接100.89数据库测试环境
+
+http://localhost:6100/#/nc/integrations
+SQL Server数据库为什么在本地开发环境运行可以添加数据源和连接成功，
+在用docker部署的测试环境100.89上确提示错误：Database is not support is not implemented.

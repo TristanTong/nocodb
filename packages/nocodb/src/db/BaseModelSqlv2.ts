@@ -6718,10 +6718,17 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
     const runAfterForLoop = [];
     const updatedColIds = [];
 
-    // Never write AI/IDENTITY PKs into INSERT/UPDATE SET (MSSQL rejects IDENTITY updates)
+    // Never write AI/IDENTITY PKs into INSERT SET (DB generates them).
+    // On UPDATE: only strip for MSSQL IDENTITY (`.update(obj)` must not set identity).
+    // PG/MySQL/SQLite bulkUpdate uses batchUpdate() which needs pk retained in the row
+    // for CASE/WHERE matching (pk is already excluded from the SET column list).
+    // Regression: MSSQL Phase2 stripped AI pk on all updates and broke PG PATCH (500).
     if (!extra?.undo) {
       for (const pkColumn of this.model.primaryKeys) {
         if (pkColumn.ai) {
+          if (!isInsertData && !this.isMssql) {
+            continue;
+          }
           const keyName =
             data?.[pkColumn.column_name] !== undefined
               ? pkColumn.column_name
