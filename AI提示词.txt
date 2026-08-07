@@ -163,3 +163,4 @@ nocodb应用连接至测试数据库pg://192.168.100.89:5432?u=postgres&p=Pass@w
 http://localhost:6100/#/nc/integrations
 SQL Server数据库为什么在本地开发环境运行可以添加数据源和连接成功，
 在用docker部署的测试环境100.89上确提示错误：Database is not support is not implemented.
+
