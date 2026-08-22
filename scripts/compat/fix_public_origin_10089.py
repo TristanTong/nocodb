@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Add nginx:80 reverse proxy on 192.168.100.89 and point UI/API public URLs to :80."""
+"""Fix 100.89 so login works via http://oa.medlinket.com:19999 (Chrome + off-LAN).
+
+Root cause: UI baked NUXT_PUBLIC_NC_BACKEND_URL=http://192.168.100.89
+so the browser calls the private IP instead of the mapped public origin.
+"""
 from __future__ import annotations
 
 import os
@@ -15,7 +19,7 @@ PWD = os.environ.get("REMOTE_SSH_PASSWORD", "Pass@w0rd")
 REMOTE = "/opt/mlnocodb"
 
 NGINX = r"""worker_processes auto;
-pid /tmp/nginx.pid;
+pid /var/run/nginx.pid;
 
 events {
     worker_connections 1024;
@@ -27,6 +31,7 @@ http {
     sendfile on;
     keepalive_timeout 65;
     client_max_body_size 100M;
+    gzip off;
 
     map $http_upgrade $connection_upgrade {
         default upgrade;
@@ -39,6 +44,7 @@ http {
 
         location /api/ {
             proxy_pass http://api:8080;
+            proxy_http_version 1.1;
             proxy_set_header Host $http_host;
             proxy_set_header X-Forwarded-Host $http_host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -110,6 +116,7 @@ http {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header Accept-Encoding "";
+            proxy_hide_header Content-Encoding;
             sub_filter_types text/html;
             sub_filter_once off;
             sub_filter 'ncBackendUrl:"http://192.168.100.89"' 'ncBackendUrl:window.location.origin';
@@ -131,6 +138,8 @@ COMPOSE = f"""services:
     depends_on:
       - api
       - ui
+    security_opt:
+      - seccomp:unconfined
 
   api:
     image: mlnocodb:0.1.3
@@ -154,7 +163,6 @@ COMPOSE = f"""services:
     restart: always
     working_dir: /app
     command: ["node", "server/index.mjs"]
-    # no host publish for 6100 — access via nginx:80
     expose:
       - "6100"
     environment:
@@ -170,11 +178,12 @@ COMPOSE = f"""services:
 
 
 def run(c, cmd, timeout=180):
-    print(f"$ {cmd}", flush=True)
-    _, o, e = c.exec_command(cmd, timeout=timeout, get_pty=True)
+    print(f"\n$ {cmd[:280]}", flush=True)
+    _, o, _ = c.exec_command(cmd, timeout=timeout, get_pty=True)
     out = o.read().decode("utf-8", "replace")
     code = o.channel.recv_exit_status()
-    print(out.encode("ascii", "replace").decode().rstrip()[:2500], flush=True)
+    if out.strip():
+        print(out.rstrip()[:5000], flush=True)
     print(f"exit={code}", flush=True)
     return code, out
 
@@ -184,16 +193,8 @@ def main():
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     c.connect(HOST, username="root", password=PWD, timeout=30)
     try:
-        # ensure nginx image
-        code, out = run(c, "docker images -q nginx:alpine")
-        if not out.strip():
-            run(
-                c,
-                "docker pull nginx:alpine 2>&1 || "
-                "(docker pull docker.m.daocloud.io/library/nginx:alpine && "
-                "docker tag docker.m.daocloud.io/library/nginx:alpine nginx:alpine)",
-                timeout=600,
-            )
+        run(c, f"cp -a {REMOTE}/docker-compose.yml {REMOTE}/docker-compose.yml.bak.sameorigin.$(date +%Y%m%d%H%M%S)")
+        run(c, f"cp -a {REMOTE}/nginx.conf {REMOTE}/nginx.conf.bak.sameorigin.$(date +%Y%m%d%H%M%S)")
 
         sftp = c.open_sftp()
         with sftp.file(f"{REMOTE}/nginx.conf", "w") as f:
@@ -202,41 +203,52 @@ def main():
             f.write(COMPOSE)
         sftp.close()
 
-        run(c, f"cp -a {REMOTE}/docker-compose.yml {REMOTE}/docker-compose.yml.bak.$(date +%Y%m%d%H%M%S)")
+        # Keep the currently running API image so recreate does not roll back MSSQL hotfix
+        run(
+            c,
+            "IMG=$(docker inspect mlnocodb-api --format '{{.Image}}'); "
+            "echo CURRENT_API_IMAGE=$IMG; "
+            f"sed -i \"s#image: mlnocodb:0.1.3#image: $IMG#\" {REMOTE}/docker-compose.yml; "
+            f"grep -n 'image:' {REMOTE}/docker-compose.yml",
+        )
 
-        # recreate stack so env URLs update
-        run(c, f"cd {REMOTE} && docker compose down 2>&1 || true")
-        code, _ = run(c, f"cd {REMOTE} && docker compose up -d 2>&1")
+        # Recreate only app containers; keep existing image IDs
+        code, _ = run(c, f"cd {REMOTE} && docker compose up -d --force-recreate api ui nginx")
         if code != 0:
             return 1
 
-        time.sleep(8)
-        run(c, "docker exec mlnocodb-nginx nginx -t && docker exec mlnocodb-nginx nginx -s reload")
-        time.sleep(20)
-
-        run(c, "docker ps --filter name=mlnocodb --format 'table {{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}'")
-        run(c, "docker inspect mlnocodb-api --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'NC_DB|NC_PUBLIC'")
+        time.sleep(18)
+        run(c, "docker ps --filter name=mlnocodb --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'")
         run(c, "docker inspect mlnocodb-ui --format '{{range .Config.Env}}{{println .}}{{end}}' | grep NUXT_PUBLIC")
+        run(c, "docker inspect mlnocodb-api --format '{{range .Config.Env}}{{println .}}{{end}}' | grep NC_PUBLIC")
 
-        print("\n=== health via :80 ===", flush=True)
-        run(c, "curl -s -m 10 -o /dev/null -w 'UI=%{http_code}\\n' http://127.0.0.1/")
+        print("\n=== verify HTML backend url ===", flush=True)
         run(
             c,
-            "curl -s -m 10 -X POST http://127.0.0.1/api/v1/auth/user/signin "
-            "-H 'Content-Type: application/json' -d '{\"email\":\"a@b.c\",\"password\":\"x\"}'",
+            "curl -s -m 10 -H 'Host: oa.medlinket.com:19999' http://127.0.0.1/ "
+            "| grep -oE 'ncBackendUrl[^,]{0,80}'",
         )
         run(
             c,
-            "curl -s -m 8 -o /tmp/jl.txt -w 'jobs=%{http_code} ctype=%{content_type} t=%{time_total}\\n' "
-            "-X POST http://127.0.0.1/jobs/listen -H 'Content-Type: application/json' "
-            "-d '{\"_mid\":0,\"data\":{\"id\":\"x\"}}'; head -c 80 /tmp/jl.txt; echo",
-            timeout=30,
+            "curl -s -m 10 -H 'Host: 192.168.100.89' http://127.0.0.1/ "
+            "| grep -oE 'ncBackendUrl[^,]{0,80}'",
         )
-        run(c, "curl -s -m 5 -o /tmp/dl.txt -w 'dl=%{http_code} ctype=%{content_type}\\n' http://127.0.0.1/dl/a/b/c; head -c 40 /tmp/dl.txt; echo")
-        run(c, "curl -s -m 5 -o /dev/null -w 'api_direct_6080=%{http_code}\\n' http://127.0.0.1:6080/api/v1/health")
+
+        print("\n=== verify API via mapped Host ===", flush=True)
+        run(c, "curl -s -m 8 -H 'Host: oa.medlinket.com:19999' http://127.0.0.1/api/v1/health; echo")
+        run(
+            c,
+            "curl -s -m 10 -o /dev/null -w 'signin=%{http_code}\\n' "
+            "-X POST http://127.0.0.1/api/v1/auth/user/signin "
+            "-H 'Host: oa.medlinket.com:19999' "
+            "-H 'Origin: http://oa.medlinket.com:19999' "
+            "-H 'Content-Type: application/json' "
+            "-d '{\"email\":\"a@b.c\",\"password\":\"x\"}'",
+        )
+        run(c, "curl -s -m 8 -o /dev/null -w 'ui=%{http_code}\\n' http://127.0.0.1/")
+        run(c, "docker logs --tail 15 mlnocodb-nginx 2>&1")
     finally:
         c.close()
-    print("\nDone. Open http://192.168.100.89/", flush=True)
     return 0
 
 

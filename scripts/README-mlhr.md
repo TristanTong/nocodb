@@ -24,11 +24,16 @@
 
 DDL 文件：[`scripts/mlhr_talent_phase1.sql`](./mlhr_talent_phase1.sql)
 
+增量：[`scripts/mlhr_add_resume_filename.sql`](./mlhr_add_resume_filename.sql)（原始简历文件名）  
+增量：[`scripts/mlhr_add_candidate_created_by.sql`](./mlhr_add_candidate_created_by.sql)（候选人上传人）
+
 应用/重跑：
 
 ```bash
 set MLHR_PG_PASSWORD=***
 python scripts/apply_mlhr_talent_schema.py
+python scripts/apply_mlhr_resume_filename.py
+python scripts/apply_mlhr_candidate_created_by.py
 python scripts/verify_mlhr_tables.py
 ```
 

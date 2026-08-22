@@ -164,3 +164,10 @@ http://localhost:6100/#/nc/integrations
 SQL Server数据库为什么在本地开发环境运行可以添加数据源和连接成功，
 在用docker部署的测试环境100.89上确提示错误：Database is not support is not implemented.
 
+http://oa.medlinket.com:19999是做了外网映射的域名地址，指定的是http://192.168.100.89
+经测试，本机电脑360浏览器登陆和使用http://oa.medlinket.com:19999没问题，谷歌Chrome浏览器使用有问题，无法登陆
+在公司外电脑（非公司内网）能打开但无法登陆使用，提示Network Error
+请查明原因，并修复部署192.168.100.89上应用
+
+http://oa.medlinket.com:19999 还是很奇怪，国外美国服务器上测试能够打开，国内其它公司网络打开不了，手机上5G网络也打不开
+公司电脑本机192.168.1.X网络可打开，另外一台电脑另一0.X网段的打不开
