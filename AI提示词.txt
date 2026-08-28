@@ -171,3 +171,27 @@ http://oa.medlinket.com:19999是做了外网映射的域名地址，指定的是
 
 http://oa.medlinket.com:19999 还是很奇怪，国外美国服务器上测试能够打开，国内其它公司网络打开不了，手机上5G网络也打不开
 公司电脑本机192.168.1.X网络可打开，另外一台电脑另一0.X网段的打不开
+
+
+[talentpool]
+base_url = http://192.168.100.89
+nocodb_web = http://192.168.100.89
+base_id = pqe44y5f957la04
+candidate_table_id = mnk702c5j44og8b
+raw_table_id = m0ixin184tfhckp
+interview_table_id = muojtma6ys54njq
+api_token = MVizbw1nC8pJOwwKYDNIF8MHsY4JwEOeSE98pH8E
+wb_base = http://192.168.1.11:8080
+
+需要将nocodb中192.168.100.89中人才库相关的数据表发布上线至192.168.100.93nocodb中
+【已完成】业务库 `192.168.100.97/mldata.mlhr` 已建表并复制数据（candidate/raw_resume=60，interview_note=3，op_log=177）；生产 NocoDB `http://192.168.100.93` 基座 `pqe44y5f957la04` 已 meta-sync。
+生产表 ID（与测试 89 不同，WorkBuddy 切生产时需改）：
+  candidate_table_id = mc1ekr9py4u7i61
+  raw_table_id = mnna059ryzq2jyw
+  interview_table_id = m591wgzz9ac06og
+脚本：scripts/publish_mlhr_89_to_97.py
+
+将100.97里的 mldata库mlhr下candidate_table、raw_table、interview_table、job_req、op_log 
+表数据清空并重置自增长id为从1开始
+【已完成】已 TRUNCATE RESTART IDENTITY；5 表 rows=0，next_id=1。脚本：scripts/truncate_mlhr_10097.py
+

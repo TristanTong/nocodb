@@ -4,13 +4,30 @@
 
 | 项 | 值 |
 |----|-----|
-| Host | `192.168.100.89` |
+| Host | 测试 `192.168.100.89` / 生产 `192.168.100.97` |
 | Port | `5432` |
 | Database | **`mldata`** |
 | Schema | **`mlhr`** |
 | User | `postgres`（或只读/读写业务账号） |
+| NocoDB | 测试 `http://192.168.100.89` / 生产 `http://192.168.100.93`（Meta 在 97） |
 
 密码勿写入 Git；本地用环境变量 `MLHR_PG_PASSWORD`。
+
+测试→生产发布（DDL+数据复制+在 93 上 meta-sync）：
+
+```bash
+set MLHR_PG_PASSWORD=***
+set MLHR_PG_HOST=192.168.100.97
+python scripts/apply_mlhr_talent_schema.py
+python scripts/apply_mlhr_resume_filename.py
+python scripts/apply_mlhr_candidate_created_by.py
+python scripts/publish_mlhr_89_to_97.py
+# 然后用超级管理员登录 http://192.168.100.93 ，对「人事部」数据源执行 Meta Sync
+# 或：POST /api/v2/meta/bases/pqe44y5f957la04/meta-diff/bfx4xxwn6rigvf2 （需 xc-auth，不可用 API Token）
+```
+
+生产表 ID（meta-sync 后生成，与 89 不同）：`candidate=mc1ekr9py4u7i61`、`raw_resume=mnna059ryzq2jyw`、`interview_note=m591wgzz9ac06og`。
+
 
 ## 已建表
 
