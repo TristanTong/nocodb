@@ -419,6 +419,14 @@ export function isOrderCol(
     | ColumnReqType
     | ColumnType
 ) {
+  if (typeof col === 'object' && col) {
+    const name =
+      (col as ColumnType).column_name ||
+      (col as { cn?: string }).cn ||
+      (col as ColumnType).title;
+    // Sync/import often marks nc_order as Decimal; still treat as Order for row drag
+    if (name === 'nc_order') return true;
+  }
   return [UITypes.Order].includes(
     <UITypes>(typeof col === 'object' ? col?.uidt : col)
   );

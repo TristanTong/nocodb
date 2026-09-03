@@ -104,6 +104,7 @@ async function listSources(tok) {
 }
 
 async function waitTable(tok, sourceId, tableName, tries = 40) {
+  let pendingJobId = null;
   for (let i = 0; i < tries; i++) {
     const [, tables] = await req('GET', `/api/v1/db/meta/projects/${BASE_ID}/tables`, undefined, tok);
     const tlist = Array.isArray(tables) ? tables : tables.list || [];
@@ -115,12 +116,52 @@ async function waitTable(tok, sourceId, tableName, tries = 40) {
     if (found) return found;
     if (i % 3 === 0) {
       const [c, body] = await req('POST', `/api/v2/meta/bases/${BASE_ID}/meta-diff/${sourceId}`, undefined, tok);
-      console.log('meta_diff_nudge', i, c, JSON.stringify(body).slice(0, 120));
+      console.log('meta_diff_nudge', i, c, JSON.stringify(body).slice(0, 160));
+      if (c < 400 && body?.id) pendingJobId = body.id;
+      // If sync already in progress, poll that job (or any active meta-sync) instead of hammering POST
+      if (c >= 400 && /already in progress/i.test(JSON.stringify(body))) {
+        const [jc, jobs] = await req('POST', `/api/v2/jobs/${BASE_ID}`, {}, tok);
+        const active = (Array.isArray(jobs) ? jobs : []).find(
+          (j) => j.job === 'meta-sync' && (j.status === 'active' || j.status === 'waiting'),
+        );
+        if (active?.id) {
+          pendingJobId = active.id;
+          console.log('poll_existing_meta_sync', pendingJobId);
+          await listenJob(tok, pendingJobId, 30);
+        }
+      } else if (pendingJobId) {
+        await listenJob(tok, pendingJobId, 20);
+      }
     }
     console.log(' wait table', i, tableName);
     await sleep(3000);
   }
   throw new Error('TABLE_SYNC_TIMEOUT');
+}
+
+async function listenJob(tok, jobId, maxAttempts = 40) {
+  let mid = 0;
+  for (let i = 0; i < maxAttempts; i++) {
+    const [c, body] = await req('POST', '/jobs/listen', { _mid: mid, data: { id: jobId } }, tok);
+    const responses = Array.isArray(body) ? body : [body];
+    for (const resp of responses) {
+      if (!resp || typeof resp !== 'object') continue;
+      if ((resp._mid || 0) > mid) mid = resp._mid;
+      if (resp.status === 'update') {
+        const st = resp.data?.status;
+        if (st === 'completed' || st === 'failed') {
+          console.log('job_done', jobId, st);
+          return st;
+        }
+      }
+      if (resp.status === 'close') {
+        console.log('job_close', jobId);
+        return 'close';
+      }
+    }
+    await sleep(500);
+  }
+  return 'timeout';
 }
 
 async function ensureWritableSource(tok) {

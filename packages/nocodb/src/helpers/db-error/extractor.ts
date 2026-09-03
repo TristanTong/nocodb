@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { PgDBErrorExtractor } from './pg.extractor';
 import { SqliteDBErrorExtractor } from './sqlite.extractor';
 import { MysqlDBErrorExtractor } from './mysql.extractor';
+import { MssqlDBErrorExtractor } from './mssql.extractor';
 import { DefaultDBErrorExtractor } from './default.extractor';
 import type { DBErrorExtractResult, IClientDbErrorExtractor } from './utils';
 
@@ -32,6 +33,12 @@ export class DBErrorExtractor {
         dbErrorLogger: this.logger,
       }),
     ],
+    [
+      ClientType.MSSQL,
+      new MssqlDBErrorExtractor({
+        dbErrorLogger: this.logger,
+      }),
+    ],
   ]);
   defaultExtractor = new DefaultDBErrorExtractor({
     dbErrorLogger: this.logger,
@@ -44,6 +51,21 @@ export class DBErrorExtractor {
 
     // MySQL: errors start with ER_
     if (code.startsWith('ER_')) return ClientType.MYSQL;
+
+    // node-mssql / tedious
+    if (
+      [
+        'EREQUEST',
+        'ELOGIN',
+        'ETIMEOUT',
+        'EALREADYCONNECTED',
+        'EALREADYCONNECTING',
+        'EINSTLOOKUP',
+        'ESOCKET',
+      ].includes(code)
+    ) {
+      return ClientType.MSSQL;
+    }
 
     // PostgreSQL: 5-character SQLSTATE codes
     if (/^[0-9A-Z]{5}$/.test(code)) return ClientType.PG;
@@ -65,7 +87,12 @@ export class DBErrorExtractor {
     if (clientType) {
       extractResult = this.extractors.get(clientType)?.extract(error);
     } else {
-      [ClientType.PG, ClientType.MYSQL, ClientType.SQLITE].forEach((ct) => {
+      [
+        ClientType.PG,
+        ClientType.MYSQL,
+        ClientType.SQLITE,
+        ClientType.MSSQL,
+      ].forEach((ct) => {
         if (!extractResult) {
           extractResult = this.extractors.get(ct)?.extract(error);
         }

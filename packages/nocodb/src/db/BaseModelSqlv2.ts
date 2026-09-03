@@ -3590,6 +3590,12 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
   ) {
     const columns = await this.model.getColumns(this.context);
 
+    if (!this.model.primaryKey) {
+      NcError.get(this.context).badRequest(
+        'Primary key is required to delete records from this table',
+      );
+    }
+
     let transaction;
     try {
       const deleteIds = await Promise.all(

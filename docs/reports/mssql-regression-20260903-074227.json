@@ -1,0 +1,92 @@
+{
+  "ts": "20260903-074227",
+  "backend": "http://192.168.100.89",
+  "base": "pw4yksn9i7x1fx4",
+  "source": "b6mmr5wqft4lj6l",
+  "table": "mfovsj7l4h4g32p",
+  "passed": 16,
+  "total": 16,
+  "failed": [],
+  "results": [
+    {
+      "name": "TC-ENV-01 health",
+      "pass": true,
+      "detail": "{'message': 'OK', 'timestamp': 1788421347496, 'uptime': 54.327776712}"
+    },
+    {
+      "name": "TC-ENV-02 version",
+      "pass": true,
+      "detail": "{'currentVersion': '0.301.3', 'releaseVersion': '2026.08.1'}"
+    },
+    {
+      "name": "TC-AUTH-01 signin/signup",
+      "pass": true,
+      "detail": "signin"
+    },
+    {
+      "name": "TC-AUTH-03 me",
+      "pass": true,
+      "detail": "mssql-ui-test@local.test"
+    },
+    {
+      "name": "TC-BASE-01 bases list HTTP",
+      "pass": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "TC-DS-06 MSSQL source present",
+      "pass": true,
+      "detail": "{\"list\":[{\"upgraderQueries\":[],\"id\":\"b1xz5ra6pnrpbjq\",\"base_id\":\"pw4yksn9i7x1fx4\",\"alias\":null,\"meta\":null,\"is_meta\":false,\"type\":\"pg\",\"inflection_column\":\"camelize\",\"inflection_table\":\"camelize\",\"created_at\":\"2026-06-01 08:42:33+00:00\",\"updated_at\":\"2026-07-24 23:59:56+00:00\",\"enabled\":false,\"order"
+    },
+    {
+      "name": "TC-MSSQL-META-DIFF load metadata diff",
+      "pass": true,
+      "detail": "200 listen=completed n=50 {\"id\":\"jobjebmgx4dtnx0rw\"}"
+    },
+    {
+      "name": "TC-MSSQL-META-SYNC trigger",
+      "pass": true,
+      "detail": "200 listen=completed {\"id\":\"job73igmbi8gbzwl8\"}"
+    },
+    {
+      "name": "TC-MSSQL-COUNT sync count",
+      "pass": true,
+      "detail": "200 {\"count\":0}"
+    },
+    {
+      "name": "TC-MSSQL-COUNT-VIEW view sync count",
+      "pass": true,
+      "detail": "200 {\"count\":0}"
+    },
+    {
+      "name": "TC-MSSQL-10 grid list",
+      "pass": true,
+      "detail": "200 list_len=0"
+    },
+    {
+      "name": "TC-MSSQL-20 insert+update+delete smoke",
+      "pass": true,
+      "detail": "table=_nc_p2_1784943212 ins=200 id=2 upd=200 del=200"
+    },
+    {
+      "name": "TC-MSSQL-NOPK delete without PK is 4xx",
+      "pass": true,
+      "detail": "400 {\"msg\":\"Primary key is required to delete records from this table\"}"
+    },
+    {
+      "name": "TC-MSSQL-TABLE meta",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "TC-MSSQL-05 wiring",
+      "pass": true,
+      "detail": "tos\n[PASS] docs/07 SQL Server — 07-用户操作说明书.md\n[PASS] docs/08 MSSQL port/TLS — 08-系统运维手册.md\n[PASS] live_mssql — {\"ok\":[{\"ok\":1}],\"schemas\":[{\"s\":\"UFDATA\",\"c\":50},{\"s\":\"file_source\",\"c\":30},{\"s\":\"oaa6\",\"c\":8},{\"s\":\"FM\",\"c\":7},{\"s\":\"plm\",\"c\":6},{\"s\":\"mlservers\",\"c\":4},{\"s\":\"qywx\",\"c\":3}],\"sample\":{\"table\":\"file_source.application_process\",\"rows\":5}}\n[PASS] require('mssql') — mssql_ok\n\n\nALL_CHECKS_OK\n"
+    },
+    {
+      "name": "TC-MSSQL-28 extractor wiring",
+      "pass": true,
+      "detail": "MSSQL_EXTRACTOR_OK\n"
+    }
+  ]
+}

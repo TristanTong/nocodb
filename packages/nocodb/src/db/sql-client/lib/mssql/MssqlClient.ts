@@ -661,6 +661,10 @@ class MssqlClient extends KnexClient {
         el.au = !!el.au;
       }
 
+      // External U8/ETL tables often omit PRIMARY KEY but still have a natural key.
+      // NocoDB UI blocks cell edits without meta pk — promote unique index / candidate.
+      await this.applyMissingPkFallback(response, args.tn);
+
       result.data.list = response;
     } catch (e) {
       log.ppe(e, _func);
@@ -669,6 +673,84 @@ class MssqlClient extends KnexClient {
 
     log.api(`${_func}: result`, result);
     return result;
+  }
+
+  /**
+   * When SQL Server table has no PRIMARY KEY, mark a usable row identity in meta.
+   * Order: unique index columns → best NOT NULL name match (*Id / *Code / id).
+   * ponytail: heuristic ceiling — wrong key if business uniqueness ≠ NOT NULL name;
+   * upgrade by adding a real PK/unique constraint and re-running meta sync.
+   */
+  private async applyMissingPkFallback(columns: any[], tn: string) {
+    if (!columns?.length || columns.some((c) => c.pk)) return;
+
+    try {
+      const uniq = await this.sqlClient.raw(
+        `SELECT c.name AS cn
+         FROM sys.indexes i
+         JOIN sys.index_columns ic
+           ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+         JOIN sys.columns c
+           ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+         JOIN sys.tables t ON i.object_id = t.object_id
+         JOIN sys.schemas s ON t.schema_id = s.schema_id
+         WHERE s.name = '${this.schema}' AND t.name = '${tn}'
+           AND i.is_unique = 1 AND i.is_primary_key = 0
+         ORDER BY i.name, ic.key_ordinal`,
+      );
+      const uniqRows = Array.isArray(uniq)
+        ? Array.isArray(uniq[0])
+          ? uniq[0]
+          : uniq
+        : (uniq as any)?.recordset || [];
+      const uniqNames = [
+        ...new Set(
+          uniqRows
+            .map((r: any) => r.cn || r.CN || r.name)
+            .filter(Boolean)
+            .map((n: string) => String(n)),
+        ),
+      ];
+      if (uniqNames.length) {
+        for (const el of columns) {
+          if (uniqNames.includes(el.cn)) {
+            el.pk = true;
+            el.unique = true;
+          }
+        }
+        return;
+      }
+    } catch {
+      // fall through to NOT NULL heuristic
+    }
+
+    const score = (cn: string) => {
+      const n = String(cn || '');
+      // Avoid matching *GUID / *Uuid as *Id
+      if (/guid$/i.test(n) || /uuid$/i.test(n)) return 0;
+      if (/^id$/i.test(n)) return 100;
+      // Prefer business codes over generic *Id suffixes when both exist
+      if (/code$/i.test(n)) return 90;
+      if (/(^|_)id$/i.test(n) || /Id$/.test(n)) return 80;
+      if (/key$/i.test(n)) return 60;
+      if (/pk$/i.test(n)) return 50;
+      return 0;
+    };
+
+    const required = columns.filter((c) => c.rqd);
+    let best: any = null;
+    let bestScore = 0;
+    for (const c of required) {
+      const s = score(c.cn);
+      if (s > bestScore) {
+        bestScore = s;
+        best = c;
+      }
+    }
+    if (best) {
+      best.pk = true;
+      best.unique = true;
+    }
   }
 
   /**

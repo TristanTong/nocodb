@@ -93,6 +93,11 @@ export function isTransientError(error: any): boolean {
     // SQLite errors
     if (['SQLITE_BUSY', 'SQLITE_LOCKED'].includes(code)) return true;
 
+    // SQL Server / tedious
+    if (['ETIMEOUT', 'ESOCKET', 'ELOGIN', 'EINSTLOOKUP'].includes(code)) {
+      return true;
+    }
+
     // File system errors (relevant for SQLite and file-based operations)
     if (['EACCES', 'EROFS', 'ENOSPC'].includes(code)) return true;
   }
