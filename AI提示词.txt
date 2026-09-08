@@ -195,3 +195,35 @@ wb_base = http://192.168.1.11:8080
 表数据清空并重置自增长id为从1开始
 【已完成】已 TRUNCATE RESTART IDENTITY；5 表 rows=0，next_id=1。脚本：scripts/truncate_mlhr_10097.py
 
+http://192.168.100.89/#/nc/pndb7r4p2gozzzx/mkrpoejzwnaynqh/vw8ygjt8vwuh9ncb
+表格视图数据行操作时，可以允许有一个拖动行的图标，支持数据行向上或向下调整数据行顺序。
+
+192.168.100.89为测试环境，
+192.168.100.93为正式生产环境，请加入更新至docs下的08-系统运维手册.md 文档。
+探查分析当前192.168.100.89与192.168.100.93部署情况和部署版本或功能差异。
+
+http://192.168.100.93/#/w30hbjoc/pys0rzjz5mgwkzy/ml7vrxmx5x9y7pu/vwncjefh9as7wsyr
+先仅针对这一个表视图的 nc_order 修复，使其支持拖动排序功能
+
+http://192.168.100.89/#/nc/pw4yksn9i7x1fx4?page=data-source
+Failed to load metadata diff
+http://192.168.100.89/#/nc/pw4yksn9i7x1fx4/mfovsj7l4h4g32p/vwb8kfp4g9kdkb11
+Failed to sync count: Some internal error occurred
+修复如上两个及其它等等SQLServer数据库源数据表的各项操作异常问题
+完善和补充docs文件夹下的测试用例文档，完成一次针对集成SqlServer数据库的全部nocodb功能点的回归测试，
+根据测试结果中发现的问题自动修复源代码bug，直到所有测试用例均通过以及所有功能点使用没问题才算完成任务。
+
+http://192.168.100.89/#/nc/pw4yksn9i7x1fx4/m34uq1j0rkdzqdg/vwb24q0f2c399bh2
+不允许更新没有主键的表
+SQLServer数据库源所有数据表都不能修改编辑数据和新增数据，如上提示，请查明原因并修复
+
+自动提交代码至git并升级一个版本，备注功能与上一版本的变化，打Tag标签并完成push
+
+评估100.93 nocodb 部署应用升级为最新的风险，为打包部署做准备，docker容器镜像需要带tag版本号部署
+
+开始升级100.93生产环境的应用，注意要保持线上环境最少时间的断机，将不可访问时间降至最低，
+同时，备份好Linux上原镜像等文件便于回滚使用，另外生产DB上数据库已手工完成备份，可放心升级应用版本。
+
+http://192.168.100.93/#/nc/integrations?tab=integrations
+发布后，数据源页面上无SQL Server选项
+

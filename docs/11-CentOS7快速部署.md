@@ -4,8 +4,9 @@
 |----|------|
 | 适用系统 | CentOS 7.6（内网服务器） |
 | 推荐方式 | **Docker 双容器**：API `6080` + 最新 UI `6100` |
-| 源码基线 | mlnocodb `0.301.2`；推荐里程碑 tag **`v0.1.3`**（含 SQL Server Phase 0～5 + CentOS `mssql` 镜像） |
+| 源码基线 | mlnocodb `0.301.2`+；推荐里程碑 tag **`v0.1.6`**（MSSQL 稳定：meta-diff/count、无主键自然键、EREQUEST） |
 | 推荐 Dockerfile | `packages/nocodb/Dockerfile.centos`（官方 `0.301.2` + 自研 `main.js` + **`mssql` 驱动**） |
+| 镜像标签约定 | **必须**带版本号：`mlnocodb:0.1.6`（勿只用 `latest` / 勿 compose 写死 digest） |
 | 不推荐 | 在 CentOS 7 上直接安装 Node.js 22（glibc 过旧，易失败） |
 
 关联文档：[08-系统运维手册.md](./08-系统运维手册.md)、[12-SQLServer数据源支持开发方案.md](./12-SQLServer数据源支持开发方案.md)。
@@ -53,32 +54,36 @@
 git clone <你们的仓库地址> mlnocodb
 cd mlnocodb
 # 推荐发布点
-git checkout v0.1.3
+git checkout v0.1.6
 
 pnpm bootstrap
 
 # 生成后端 docker/main.js（以仓库实际脚本为准）
 cd packages/nocodb
-pnpm run build        # 或能产出 docker/main.js 的惯用命令
+pnpm run build        # 或 pnpm run docker:build
 # 确认存在：packages/nocodb/docker/main.js
 ```
 
-用 **CentOS 专用 Dockerfile** 构建（会安装 `mssql`）：
+用 **CentOS 专用 Dockerfile** 构建（会安装 `mssql`），**标签带版本号**：
 
 ```bash
 cd packages/nocodb
-docker build -t mlnocodb:0.1.3 -f Dockerfile.centos .
+docker build -t mlnocodb:0.1.6 -f Dockerfile.centos .
+
+# 或一键：python scripts/compat/package_release_0.1.6.py
 
 # 验收驱动（构建阶段已执行；也可运行时再验）
-docker run --rm mlnocodb:0.1.3 node -e "require('mssql'); console.log('mssql_ok')"
+docker run --rm mlnocodb:0.1.6 node -e "require('mssql'); console.log('mssql_ok')"
 
 # 导出给内网（无私有仓库时）
-docker save mlnocodb:0.1.3 | gzip > mlnocodb-0.1.3.tar.gz
+docker save mlnocodb:0.1.6 | gzip > mlnocodb-0.1.6.tar.gz
 ```
 
 > 勿使用未改的官方镜像直接当生产：缺 Vastbase 补丁且 **`require('mssql')` 会失败**，SQL Server 数据源不可用。
 
-把 `mlnocodb-0.1.3.tar.gz` 拷到 CentOS 服务器（scp / U 盘 / 内网文件站）。
+把 `mlnocodb-0.1.6.tar.gz` 拷到 CentOS 服务器（scp / U 盘 / 内网文件站）。
+
+生产 100.93 升级步骤见 [13-生产100.93升级到v0.1.6.md](./13-生产100.93升级到v0.1.6.md)。
 
 ---
 
@@ -99,7 +104,7 @@ sudo usermod -aG docker $USER   # 重新登录后生效
 加载镜像：
 
 ```bash
-gunzip -c mlnocodb-0.1.3.tar.gz | docker load
+gunzip -c mlnocodb-0.1.6.tar.gz | docker load
 docker images | grep mlnocodb
 ```
 
@@ -145,7 +150,7 @@ cp /path/to/repo/docker-compose/centos-internal/docker-compose.yml /opt/mlnocodb
 
 ```yaml
 # mlnocodb-api
-image: mlnocodb:0.1.3
+image: mlnocodb:0.1.6
 environment:
   # 生产 Meta 示例（按实际修改；@ → %40）
   NC_DB: "pg://192.168.100.93:5432?u=postgres&p=REPLACE_ME&d=mlnoco"
@@ -207,7 +212,7 @@ docker run -d --name mlnocodb-api --restart always \
   -e NC_PUBLIC_URL='http://<服务器IP>:6080' \
   -e TZ=Asia/Shanghai \
   -v /opt/mlnocodb/data:/usr/app/data \
-  mlnocodb:0.1.3
+  mlnocodb:0.1.6
 ```
 
 后续再按 §4.2 补 6100 UI。
