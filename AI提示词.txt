@@ -230,3 +230,15 @@ http://192.168.100.93/#/nc/integrations?tab=integrations
 http://192.168.100.89 修复服务器上的nocodb docker部署，目前打开不了，也启动不了docker容器
 Error response from daemon: error creating overlay mount to /var/lib/docker/overlay2/45c6e5682bbd5aaa21e107061bc71c7a24ec79b9a01603123028278d5b891d05/merged: invalid argument
 Error: failed to start containers: 4a2344411288
+
+http://192.168.100.89/#/w30hbjoc/pw4yksn9i7x1fx4/mgk5a7qm92pzilb/vwhyta7zpxmzmi6g/%25E7%2594%259F%25E4%25BA%25A7%25E5%2585%25A5%25E5%25BA%2593%25E6%25A3%2580%25E9%25AA%258C%25E6%259D%2583%25E9%2599%2590%25E8%25A1%25A8-%25E7%2594%259F%25E4%25BA%25A7%25E5%2585%25A5%25E5%25BA%2593%25E6%25A3%2580%25E9%25AA%258C%25E6%259D%2583%25E9%2599%2590%25E8%25A1%25A8
+设置表格按 报表权限组 分组后，提示：加载数据错误
+
+生产 100.93 也有同类需求，同步打补丁。
+
+http://192.168.100.93/#/nc/ptufhqjtqhuii6i/m22hi1xblpkia3j/vw6mvgysthjo6714
+用编辑者账号登陆tongronghui@ml.com,密码Pass@w0rd
+批量粘贴数据时，会提示如下：
+Column "updated_at" is auto generated and cannot be updated
+需要修复，并对sourceid:bkpov35slyra0jj的数据表都需要进行核对修复。
+

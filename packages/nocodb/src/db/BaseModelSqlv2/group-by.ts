@@ -77,6 +77,26 @@ const sqlNullIfBlank = ({
   return baseModel.dbDriver.raw(`NULLIF(??, '')`, [columnName]);
 };
 
+// PG/MySQL/SQLite allow GROUP BY select-list alias; MSSQL requires the expression.
+const canGroupBySelectAlias = (baseModel: IBaseModelSqlV2) =>
+  baseModel.dbDriver.clientType() !== 'mssql';
+
+const pushGroupBySelector = ({
+  baseModel,
+  groupBySelectors,
+  alias,
+  expression,
+}: {
+  baseModel: IBaseModelSqlV2;
+  groupBySelectors: any[];
+  alias: string;
+  expression: string | Knex.QueryBuilder | Knex.Raw;
+}) => {
+  groupBySelectors.push(
+    canGroupBySelectAlias(baseModel) ? alias : expression,
+  );
+};
+
 export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
   const list = async (args: {
     where?: string;
@@ -125,7 +145,6 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
       const alias = getAs(column);
       if (!isSubGroup) {
         groupByColumns[alias] = column;
-        groupBySelectors.push(alias);
       }
 
       let columnQuery;
@@ -152,6 +171,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
             })
           ).builder;
           if (!isSubGroup) {
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias,
+              expression: columnQuery,
+            });
             selectors.push(columnQuery.as(alias));
           }
           break;
@@ -179,6 +204,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
             columnQuery = baseModel.dbDriver.raw(`'ERR'`);
           }
           if (!isSubGroup) {
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias,
+              expression: columnQuery,
+            });
             selectors.push(
               baseModel.dbDriver.raw(`?? as ??`, [columnQuery, alias]),
             );
@@ -195,6 +226,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
           });
           columnQuery = baseModel.dbDriver.raw(lookupQb.builder).wrap('(', ')');
           if (!isSubGroup) {
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias,
+              expression: columnQuery,
+            });
             selectors.push(
               baseModel.dbDriver.raw(`?? as ??`, [columnQuery, alias]),
             );
@@ -231,6 +268,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
             columnQuery = baseModel.dbDriver.raw('DATE(??)', [columnName]);
           }
           if (!isSubGroup) {
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias,
+              expression: columnQuery,
+            });
             selectors.push(
               baseModel.dbDriver.raw(`?? as ??`, [columnQuery, alias]),
             );
@@ -248,6 +291,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
               defaultColumnName,
             ]);
             if (!isSubGroup) {
+              pushGroupBySelector({
+                baseModel,
+                groupBySelectors,
+                alias,
+                expression: columnQuery,
+              });
               selectors.push(
                 baseModel.dbDriver.raw(`?? as ??`, [columnQuery, alias]),
               );
@@ -270,6 +319,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
             columnQuery = baseModel.dbDriver.raw('??', [uuidColumnName]);
           }
           if (!isSubGroup) {
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias,
+              expression: columnQuery,
+            });
             selectors.push(
               baseModel.dbDriver.raw(`?? as ??`, [columnQuery, alias]),
             );
@@ -288,6 +343,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
           });
           columnQuery = baseModel.dbDriver.raw('??', [defaultColumnNameQb]);
           if (!isSubGroup) {
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias,
+              expression: defaultColumnNameQb,
+            });
             selectors.push(
               baseModel.dbDriver.raw(`?? as ??`, [defaultColumnNameQb, alias]),
             );
@@ -384,7 +445,7 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
       }
     }
 
-    // group by using the column aliases
+    // group by using the column aliases (or expressions on MSSQL)
     qb.groupBy(...groupBySelectors);
 
     // Add HAVING clause to filter groups by minimum count (e.g., count > 1 for duplicates only)
@@ -393,6 +454,31 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
         baseModel.model.primaryKey?.column_name || '*',
         args.minCount,
       ]);
+    }
+
+    // MSSQL: CTE cannot be nested inside SELECT * FROM (...); ORDER BY select-alias is OK.
+    // Apply sort + paginate on the grouped query directly.
+    if (!canGroupBySelectAlias(baseModel)) {
+      for (const sort of sorts || []) {
+        if (!groupByColumns[sort.fk_column_id]) {
+          continue;
+        }
+        const column = groupByColumns[sort.fk_column_id];
+        const alias = getAs(column);
+        if (!['asc', 'desc'].includes(sort.direction)) {
+          qb.orderBy(
+            'count',
+            sort.direction === 'count-desc' ? 'desc' : 'asc',
+          );
+          qb.orderBy(alias, sort.direction === 'count-desc' ? 'asc' : 'desc');
+        } else {
+          qb.orderBy(alias, sort.direction);
+        }
+      }
+      if (!NC_DISABLE_GROUP_BY_LIMIT) {
+        applyPaginate(qb, rest);
+      }
+      return await baseModel.execAndParse(qb);
     }
 
     // Wrap in a CTE to allow referencing grouped/aliased columns in subqueries (esp. for Postgres)
@@ -552,45 +638,58 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
             break;
           }
           case UITypes.Rollup:
-          case UITypes.Links:
-            selectors.push(
-              (
-                await genRollupSelectv2({
-                  baseModelSqlv2: baseModel,
-                  // tn: baseModel.title,
-                  knex: baseModel.dbDriver,
-                  // column,
-                  // alias,
-                  columnOptions: (await column.getColOptions(
-                    baseModel.context,
-                  )) as RollupColumn,
-                })
-              ).builder.as(getAs(column)),
-            );
-            groupBySelectors.push(getAs(column));
+          case UITypes.Links: {
+            const rollupBuilder = (
+              await genRollupSelectv2({
+                baseModelSqlv2: baseModel,
+                // tn: baseModel.title,
+                knex: baseModel.dbDriver,
+                // column,
+                // alias,
+                columnOptions: (await column.getColOptions(
+                  baseModel.context,
+                )) as RollupColumn,
+              })
+            ).builder;
+            selectors.push(rollupBuilder.as(getAs(column)));
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias: getAs(column),
+              expression: rollupBuilder,
+            });
             break;
+          }
           case UITypes.Formula: {
             let selectQb;
+            let formulaExpr;
             try {
               const _selectQb = await baseModel.getSelectQueryBuilderForFormula(
                 column,
               );
 
+              formulaExpr = sqlNullIfBlank({
+                columnName: _selectQb.builder,
+                baseModel,
+              });
               selectQb = baseModel.dbDriver.raw(`?? as ??`, [
-                sqlNullIfBlank({
-                  columnName: _selectQb.builder,
-                  baseModel,
-                }),
+                formulaExpr,
                 getAs(column),
               ]);
             } catch (e) {
               logger.log(e);
               // return dummy select
+              formulaExpr = baseModel.dbDriver.raw(`'ERR'`);
               selectQb = baseModel.dbDriver.raw(`'ERR' as ??`, [getAs(column)]);
             }
 
             selectors.push(selectQb);
-            groupBySelectors.push(getAs(column));
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias: getAs(column),
+              expression: formulaExpr,
+            });
             break;
           }
           case UITypes.Lookup:
@@ -604,13 +703,21 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
                 getAlias,
               });
 
+              const lookupExpr = baseModel.dbDriver
+                .raw(_selectQb.builder)
+                .wrap('(', ')');
               const selectQb = baseModel.dbDriver.raw(`?? as ??`, [
-                baseModel.dbDriver.raw(_selectQb.builder).wrap('(', ')'),
+                lookupExpr,
                 getAs(column),
               ]);
 
               selectors.push(selectQb);
-              groupBySelectors.push(getAs(column));
+              pushGroupBySelector({
+                baseModel,
+                groupBySelectors,
+                alias: getAs(column),
+                expression: lookupExpr,
+              });
             }
             break;
           case UITypes.CreatedTime:
@@ -622,28 +729,30 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
                 column,
                 columns,
               );
+              let dtExpr;
               // ignore seconds part in datetime and group
               if (baseModel.dbDriver.clientType() === 'pg') {
+                dtExpr = baseModel.dbDriver.raw(
+                  "date_trunc('minute', ??) + interval '0 seconds'",
+                  [columnName],
+                );
                 selectors.push(
-                  baseModel.dbDriver.raw(
-                    "date_trunc('minute', ??) + interval '0 seconds' as ??",
-                    [columnName, getAs(column)],
-                  ),
+                  baseModel.dbDriver.raw('?? as ??', [dtExpr, getAs(column)]),
                 );
               } else if (
                 baseModel.dbDriver.clientType() === 'mysql' ||
                 baseModel.dbDriver.clientType() === 'mysql2'
               ) {
+                dtExpr = baseModel.dbDriver.raw(
+                  "CONVERT_TZ(DATE_SUB(??, INTERVAL SECOND(??) SECOND), @@GLOBAL.time_zone, '+00:00')",
+                  [columnName, columnName],
+                );
                 selectors.push(
-                  baseModel.dbDriver.raw(
-                    "CONVERT_TZ(DATE_SUB(??, INTERVAL SECOND(??) SECOND), @@GLOBAL.time_zone, '+00:00') as ??",
-                    [columnName, columnName, getAs(column)],
-                  ),
+                  baseModel.dbDriver.raw('?? as ??', [dtExpr, getAs(column)]),
                 );
               } else if (baseModel.dbDriver.clientType() === 'sqlite3') {
-                selectors.push(
-                  baseModel.dbDriver.raw(
-                    `strftime ('%Y-%m-%d %H:%M:00',:column:) ||
+                dtExpr = baseModel.dbDriver.raw(
+                  `strftime ('%Y-%m-%d %H:%M:00',:column:) ||
   (
   CASE WHEN substr(:column:, 20, 1) = '+' THEN
     printf ('+%s:',
@@ -655,22 +764,26 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
     substr(:column:, 24, 2))
   ELSE
     '+00:00'
-  END) as :id:`,
-                    {
-                      column: columnName,
-                      id: getAs(column),
-                    },
-                  ),
+  END)`,
+                  {
+                    column: columnName,
+                  },
+                );
+                selectors.push(
+                  baseModel.dbDriver.raw('?? as ??', [dtExpr, getAs(column)]),
                 );
               } else {
+                dtExpr = baseModel.dbDriver.raw('DATE(??)', [columnName]);
                 selectors.push(
-                  baseModel.dbDriver.raw('DATE(??) as ??', [
-                    columnName,
-                    getAs(column),
-                  ]),
+                  baseModel.dbDriver.raw('?? as ??', [dtExpr, getAs(column)]),
                 );
               }
-              groupBySelectors.push(getAs(column));
+              pushGroupBySelector({
+                baseModel,
+                groupBySelectors,
+                alias: getAs(column),
+                expression: dtExpr,
+              });
             }
             break;
           case UITypes.JSON: {
@@ -680,13 +793,18 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
                 column,
                 columns,
               );
+              const jsonExpr = baseModel.dbDriver.raw('(??)::jsonb', [
+                columnName,
+              ]);
               selectors.push(
-                baseModel.dbDriver.raw('(??)::jsonb as ??', [
-                  columnName,
-                  getAs(column),
-                ]),
+                baseModel.dbDriver.raw('?? as ??', [jsonExpr, getAs(column)]),
               );
-              groupBySelectors.push(getAs(column));
+              pushGroupBySelector({
+                baseModel,
+                groupBySelectors,
+                alias: getAs(column),
+                expression: jsonExpr,
+              });
             }
             break;
           }
@@ -697,6 +815,9 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
               column,
               columns,
             );
+            const uuidExpr = baseModel.isPg
+              ? baseModel.dbDriver.raw('(??)::text', [columnName])
+              : baseModel.dbDriver.raw('??', [columnName]);
             selectors.push(
               buildUuidGroupBySelector({
                 baseModel,
@@ -704,7 +825,12 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
                 alias: getAs(column),
               }),
             );
-            groupBySelectors.push(getAs(column));
+            pushGroupBySelector({
+              baseModel,
+              groupBySelectors,
+              alias: getAs(column),
+              expression: uuidExpr,
+            });
             break;
           }
           default:
@@ -714,13 +840,19 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
                 column,
                 columns,
               );
+              const defaultExpr = sqlNullIfBlank({ columnName, baseModel });
               selectors.push(
                 baseModel.dbDriver.raw('?? as ??', [
-                  sqlNullIfBlank({ columnName, baseModel }),
+                  defaultExpr,
                   getAs(column),
                 ]),
               );
-              groupBySelectors.push(getAs(column));
+              pushGroupBySelector({
+                baseModel,
+                groupBySelectors,
+                alias: getAs(column),
+                expression: defaultExpr,
+              });
             }
             break;
         }
@@ -778,6 +910,16 @@ export const groupBy = (baseModel: IBaseModelSqlV2, logger: Logger) => {
         baseModel.model.primaryKey?.column_name || '*',
         args.minCount,
       ]);
+    }
+
+    // MSSQL rejects nested WITH (CTE inside FROM subquery). Count groups via derived table.
+    if (!canGroupBySelectAlias(baseModel)) {
+      const qbP = baseModel.dbDriver
+        .count('*', { as: 'count' })
+        .from(qb.clone().as('sub'));
+      return (
+        await baseModel.execAndParse(qbP, null, { raw: true, first: true })
+      )?.count;
     }
 
     // Wrap in a CTE so that we can reference grouped columns safely in all engines

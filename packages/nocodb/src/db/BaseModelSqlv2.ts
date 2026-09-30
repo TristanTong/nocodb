@@ -3053,13 +3053,15 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
       const col = cols[i];
 
       if (col.title in d || col.id in d) {
+        // Client paste/API often includes visible system timestamp/user cols; ignore rather than fail.
         if (
           isCreatedOrLastModifiedTimeCol(col) ||
           isCreatedOrLastModifiedByCol(col)
         ) {
-          NcError.get(this.context).badRequest(
-            `Column "${col.title}" is auto generated and cannot be updated`,
-          );
+          delete d[col.title];
+          if (col.id) delete d[col.id];
+          if (col.column_name) delete d[col.column_name];
+          continue;
         }
 
         if (isVirtualCol(col) && !isLinksOrLTAR(col)) {
@@ -4316,13 +4318,17 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
       const column = this.model.columns[i];
 
       if (column.title in data) {
+        // Ignore client-supplied auto-generated columns (bulk paste often includes them).
         if (
           isCreatedOrLastModifiedTimeCol(column) ||
           isCreatedOrLastModifiedByCol(column)
         ) {
-          NcError.get(this.context).badRequest(
-            `Column "${column.title}" is auto generated and cannot be updated`,
-          );
+          delete data[column.title];
+          if (column.id && column.id in data) delete data[column.id];
+          if (column.column_name && column.column_name in data) {
+            delete data[column.column_name];
+          }
+          continue;
         }
 
         if (column.system && !allowSystemColumn) {
