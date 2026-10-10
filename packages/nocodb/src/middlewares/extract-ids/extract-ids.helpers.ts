@@ -61,11 +61,9 @@ export const personalViewOwnerOnlyOps = [
 ];
 
 // Permissions that editors can only use on their own personal views.
-// Includes sort/filter CRUD plus view management operations.
+// Filter/view-management stay personal-view-only; sort CRUD is allowed on
+// collaborative views so editors can persist toolbar sorts (mlnocodb).
 export const editorPersonalViewOnlyPermissions = [
-  'sortCreate',
-  'sortUpdate',
-  'sortDelete',
   'filterCreate',
   'filterUpdate',
   'filterDelete',

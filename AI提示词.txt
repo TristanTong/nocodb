@@ -242,3 +242,11 @@ http://192.168.100.93/#/nc/ptufhqjtqhuii6i/m22hi1xblpkia3j/vw6mvgysthjo6714
 Column "updated_at" is auto generated and cannot be updated
 需要修复，并对sourceid:bkpov35slyra0jj的数据表都需要进行核对修复。
 
+http://192.168.100.93/#/nc/pw4yksn9i7x1fx4/meov46ewhak6ivc/vwfd6180ofo964tt
+此表需要支持编辑和整行拖动排序。
+
+源库连接不是 100.99，在100.88上的metabase_rpt库
+
+http://192.168.100.93/#/nc/pw4yksn9i7x1fx4/meov46ewhak6ivc/vwfd6180ofo964tt
+此表三个视图，增加排序列后都无法固定保存在 排序条件中，刷新页面后就清空掉原来的排序字段
+

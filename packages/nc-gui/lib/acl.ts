@@ -120,6 +120,8 @@ const rolePermissions = {
       viewOperations: true,
       sortList: true,
       filterList: true,
+      // Persist toolbar sorts on collaborative views (upstream moved this to Creator only)
+      sortSync: true,
 
       // Extensions
       extensionUpdate: true,
