@@ -99,7 +99,7 @@ const rolePermissions = {
       extensionDelete: true,
 
       // Creator specific permissions (previously inherited from Editor)
-      sortSync: true,
+      // sortSync lives on Editor (inherited); must not duplicate here — acl validates unique perms
       filterSync: true,
       groupBySync: true,
       viewFieldEdit: true,
@@ -120,7 +120,7 @@ const rolePermissions = {
       viewOperations: true,
       sortList: true,
       filterList: true,
-      // Persist toolbar sorts on collaborative views (upstream moved this to Creator only)
+      // Persist toolbar sorts on collaborative views (moved down from Creator; inherited by Creator/Owner)
       sortSync: true,
 
       // Extensions

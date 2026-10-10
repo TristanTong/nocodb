@@ -250,3 +250,17 @@ http://192.168.100.93/#/nc/pw4yksn9i7x1fx4/meov46ewhak6ivc/vwfd6180ofo964tt
 http://192.168.100.93/#/nc/pw4yksn9i7x1fx4/meov46ewhak6ivc/vwfd6180ofo964tt
 此表三个视图，增加排序列后都无法固定保存在 排序条件中，刷新页面后就清空掉原来的排序字段
 
+http://192.168.100.93 部分内网电脑打开不了系统或换Edge浏览器打开不了，前端开发者工具提示报错如下：
+Uncaught SyntaxError: Unexpected end of input (at zTr6UBXI.js:624:20685)
+请查明原因，并修复部署
+
+http://192.168.100.93 打开不了
+zTr6UBXJ.js:391 Uncaught Error: Duplicate permissions found in roles no-access, viewer, commenter, editor, creator, owner. Please remove duplicate permissions: sortSync
+    at zTr6UBXJ.js:391:30076
+    at Array.forEach (<anonymous>)
+    at zTr6UBXJ.js:391:29935
+
+ 请加强自测，目前还是打不了，有新的问题产生。可以在cursor浏览器上模拟人工操作打开http://192.168.100.93 
+ 直至成功打开不显示异常，进入登陆页面才算完成任务。
+
+ 
