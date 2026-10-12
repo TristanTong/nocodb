@@ -1,6 +1,6 @@
 # mlnocodb 项目文档
 
-本目录为 **mlnocodb**（基于 NocoDB 开源版二次开发）的工程文档集，版本基线对应源码 `0.301.2` / 运行上报 `0.301.3`；文档集版本 **v0.1.6**（MSSQL：meta-diff/count、无主键表可编辑、EREQUEST 友好错误与回归；mlhr 人才库；相对 v0.1.5）。修订日期 **2026-09-08**。
+本目录为 **mlnocodb**（基于 NocoDB 开源版二次开发）的工程文档集，版本基线对应源码 `0.301.2` / 运行上报 `0.301.3`；文档集版本 **v0.1.7**（镜像 `mlnocodb:0.1.7`；UI 入口 `CoWxk9en.js`；**Editor `sortSync` 仅挂 Editor 角色**，禁止 Creator 重复声明以免 `Duplicate permissions: sortSync` 白屏；含 v0.1.6 MSSQL/mlhr 能力）。修订日期 **2026-10-12**。
 
 | 文档 | 说明 |
 |------|------|

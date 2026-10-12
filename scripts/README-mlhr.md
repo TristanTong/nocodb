@@ -62,3 +62,5 @@ python scripts/verify_mlhr_tables.py
 4. 系统写入 Token 与 HR 编辑账号分离（见专项 04 详设）。
 
 字段口径对齐：`medlinketfastadmin/docs/人才库与人事档案库/04-详细设计文档.md`。
+
+可选（生产 PG + Noco meta-diff 一键）：FastAdmin `scripts/106-mlhr_prod_sync_pg_and_noco.py`，见 release `mlhr_prod_v0.67.13`。
